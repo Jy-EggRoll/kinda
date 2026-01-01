@@ -250,16 +250,16 @@ app.get('/api/task/:id', (req, res) => {
     res.json(task);
 });
 
+// --- 替换开始 ---
 app.post('/api/generate', async (req, res) => {
     console.log('/api/generate received');
-    console.log('body preview:', typeof req.body.text === 'string' ? `${req.body.text.slice(0, 80)}${req.body.text.length > 80 ? '...' : ''}` : typeof req.body.text);
     try {
-        console.log('Calling base model...', baseConfig.model);
+        // 1. 构造更强的提示词，强制要求纯净 JSON
         const systemPromptText = `
-You are an educational AI assistant. Given the user's source text (course notes, lecture transcript, or article), extract the core knowledge and generate learning cards.
-Strictly return ONLY a valid JSON array (no markdown, no commentary). Each item must follow the schema:
-[{"type":"choice"|"boolean"|"fill","question":"...","options":["A","B"],"correctIndex":0,"explanation":"..."}]
-If the content is insufficient to create cards, return an empty JSON array [].
+You are an educational AI assistant.
+Extract core knowledge from the user's text and generate learning cards.
+STRICTLY RETURN ONLY A VALID JSON ARRAY. NO MARKDOWN, NO EXPLANATIONS.
+Schema: [{"type":"choice"|"boolean"|"fill","question":"...","options":["A","B"],"correctIndex":0,"explanation":"..."}]
 `;
 
         const completion = await clientBase.chat.completions.create({
@@ -268,39 +268,58 @@ If the content is insufficient to create cards, return an empty JSON array [].
                 { role: 'system', content: systemPromptText },
                 { role: 'user', content: req.body.text || '' }
             ],
-            max_tokens: 1500
+            // 适当降低 temperature 可以让输出格式更稳定
+            temperature: 0.1,
+            max_tokens: 2000
         });
-        console.log('Base model call completed');
 
         const responseContent = completion.choices?.[0]?.message?.content || '';
-        console.log('Model response length:', responseContent.length);
-        // 尝试直接解析 JSON
-        try {
-            const clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
-            const parsed = JSON.parse(clean);
-            return res.json(parsed);
-        } catch (e) {
-            // 回退：尝试从文本中抽取第一个 JSON 数组
-            const match = responseContent.match(/\[\s*[{\s\S]*?\]\s*/s);
-            if (match) {
-                try {
-                    const parsed2 = JSON.parse(match[0]);
-                    console.log('Extracted JSON array from response');
-                    return res.json(parsed2);
-                } catch (ee) {
-                    console.warn('Extracted array parse failed:', ee.message);
-                }
-            }
+        console.log('Model raw response:', responseContent.slice(0, 200)); // 打印前200字用于调试
 
-            // 打印响应内容前 1000 字用于调试
-            console.warn('Response not JSON. Response preview:', responseContent.slice(0, 1000));
-            return res.json({ text: responseContent });
+        // 2. 核心修复：健壮的 JSON 提取逻辑
+        let finalJson = [];
+        
+        // 方法 A: 尝试通过寻找最外层的 [] 来提取
+        const startIndex = responseContent.indexOf('[');
+        const endIndex = responseContent.lastIndexOf(']');
+
+        if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+            const potentialJson = responseContent.substring(startIndex, endIndex + 1);
+            try {
+                finalJson = JSON.parse(potentialJson);
+            } catch (e) {
+                console.warn('JSON 提取失败，尝试清理后解析:', e.message);
+                // 某些 AI 可能会产生带注释的 JSON，这里可以做进一步清理（略）
+            }
+        } else {
+             // 方法 B: 如果找不到 []，可能 AI 拒绝了回答
+             console.warn('未在回复中找到 JSON 数组结构');
         }
+
+        // 3. 验证结果是否为数组
+        if (Array.isArray(finalJson) && finalJson.length > 0) {
+            console.log(`成功解析 ${finalJson.length} 个题目`);
+            return res.json(finalJson);
+        } else {
+            // 解析失败时的兜底：
+            // 如果前端必须接收数组，返回空数组 [] 往往比返回 {text} 更安全，或者返回 500 让前端捕获
+            console.warn('解析结果为空或格式错误，原始回复:', responseContent);
+            
+            // 方案一：返回空数组（前端不会报错，但也没内容）
+            // return res.json([]); 
+            
+            // 方案二（推荐）：保持你现在的报错逻辑，但打印清晰日志以便排查
+            // 为了解决你的弹窗问题，我们尝试手动构造一个默认的错误提示题目，或者返回 500
+        
+            return res.status(500).json({ error: "无法从资料中生成有效题目，请检查输入内容是否为知识性内容。" });
+        }
+
     } catch (e) {
-        console.error('/api/generate error:', e && e.message ? e.message : e);
-        res.status(500).json({ error: e.message || String(e) });
+        console.error('/api/generate internal error:', e);
+        res.status(500).json({ error: e.message || "Internal Server Error" });
     }
 });
+// --- 替换结束 ---
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
