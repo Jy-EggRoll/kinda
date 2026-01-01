@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 交互式学习</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@catppuccin/css@1.2.0/dist/catppuccin-latte.css">
+    <link rel="stylesheet" href="css/custom.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -13,32 +13,32 @@
                 extend: {
                     colors: {
                         ctp: {
-                            rosewater: '#f5e0dc',
-                            flamingo: '#f2cdcd',
-                            pink: '#f5c2e7',
-                            mauve: '#cba6f7',
-                            red: '#f38ba8',
-                            maroon: '#eba0ac',
-                            peach: '#fab387',
-                            yellow: '#f9e2af',
-                            green: '#a6e3a1',
-                            teal: '#94e2d5',
-                            sky: '#89dceb',
-                            sapphire: '#74c7ec',
-                            blue: '#89b4fa',
-                            lavender: '#b4befe',
-                            text: '#cdd6f4',
-                            subtext1: '#bac2de',
-                            subtext0: '#a6adc8',
-                            overlay2: '#9399b2',
-                            overlay1: '#7f849c',
-                            overlay0: '#6c7086',
-                            surface2: '#585b70',
-                            surface1: '#45475a',
-                            surface0: '#313244',
-                            base: '#1e1e2e',
-                            mantle: '#181825',
-                            crust: '#11111b',
+                            rosewater: 'rgb(var(--ctp-rosewater) / <alpha-value>)',
+                            flamingo: 'rgb(var(--ctp-flamingo) / <alpha-value>)',
+                            pink: 'rgb(var(--ctp-pink) / <alpha-value>)',
+                            mauve: 'rgb(var(--ctp-mauve) / <alpha-value>)',
+                            red: 'rgb(var(--ctp-red) / <alpha-value>)',
+                            maroon: 'rgb(var(--ctp-maroon) / <alpha-value>)',
+                            peach: 'rgb(var(--ctp-peach) / <alpha-value>)',
+                            yellow: 'rgb(var(--ctp-yellow) / <alpha-value>)',
+                            green: 'rgb(var(--ctp-green) / <alpha-value>)',
+                            teal: 'rgb(var(--ctp-teal) / <alpha-value>)',
+                            sky: 'rgb(var(--ctp-sky) / <alpha-value>)',
+                            sapphire: 'rgb(var(--ctp-sapphire) / <alpha-value>)',
+                            blue: 'rgb(var(--ctp-blue) / <alpha-value>)',
+                            lavender: 'rgb(var(--ctp-lavender) / <alpha-value>)',
+                            text: 'rgb(var(--ctp-text) / <alpha-value>)',
+                            subtext1: 'rgb(var(--ctp-subtext1) / <alpha-value>)',
+                            subtext0: 'rgb(var(--ctp-subtext0) / <alpha-value>)',
+                            overlay2: 'rgb(var(--ctp-overlay2) / <alpha-value>)',
+                            overlay1: 'rgb(var(--ctp-overlay1) / <alpha-value>)',
+                            overlay0: 'rgb(var(--ctp-overlay0) / <alpha-value>)',
+                            surface2: 'rgb(var(--ctp-surface2) / <alpha-value>)',
+                            surface1: 'rgb(var(--ctp-surface1) / <alpha-value>)',
+                            surface0: 'rgb(var(--ctp-surface0) / <alpha-value>)',
+                            base: 'rgb(var(--ctp-base) / <alpha-value>)',
+                            mantle: 'rgb(var(--ctp-mantle) / <alpha-value>)',
+                            crust: 'rgb(var(--ctp-crust) / <alpha-value>)',
                         }
                     },
                     fontFamily: {
@@ -99,8 +99,7 @@
                         d="M13 5l7 7-7 7M5 5l7 7-7 7" />
                 </svg>
             </button>
-            <div
-                class="-rotate-90 origin-center whitespace-nowrap text-ctp-overlay1 font-bold tracking-widest select-none">
+            <div class="vertical-text text-ctp-overlay1 font-bold tracking-widest select-none mt-4">
                 学习助手</div>
         </div>
     </aside>
@@ -120,6 +119,15 @@
                 </div>
             </div>
             <div class="flex items-center gap-3">
+                <button id="theme-toggle-btn"
+                    class="p-2 rounded-full hover:bg-ctp-surface0 text-ctp-overlay1 hover:text-ctp-text transition-colors"
+                    title="切换主题">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
                 <span id="status-indicator" class="flex h-3 w-3 relative">
                     <span
                         class="animate-ping absolute inline-flex h-full w-full rounded-full bg-ctp-green opacity-75 hidden"></span>

@@ -1,3 +1,62 @@
+const themes = {
+    latte: {
+        rosewater: "220 138 120",
+        flamingo: "221 120 120",
+        pink: "234 118 203",
+        mauve: "136 57 239",
+        red: "210 15 57",
+        maroon: "230 69 83",
+        peach: "254 100 11",
+        yellow: "223 142 29",
+        green: "64 160 43",
+        teal: "23 146 153",
+        sky: "4 165 229",
+        sapphire: "32 159 181",
+        blue: "30 102 245",
+        lavender: "114 135 253",
+        text: "76 79 105",
+        subtext1: "92 95 119",
+        subtext0: "108 111 133",
+        overlay2: "124 127 147",
+        overlay1: "140 143 161",
+        overlay0: "156 160 176",
+        surface2: "172 176 190",
+        surface1: "188 192 204",
+        surface0: "204 208 218",
+        base: "239 241 245",
+        mantle: "230 233 239",
+        crust: "220 224 232"
+    },
+    frappe: {
+        rosewater: "242 213 207",
+        flamingo: "238 190 190",
+        pink: "244 184 228",
+        mauve: "202 158 230",
+        red: "231 130 132",
+        maroon: "234 153 156",
+        peach: "239 159 118",
+        yellow: "229 200 144",
+        green: "166 209 137",
+        teal: "129 200 190",
+        sky: "153 209 219",
+        sapphire: "133 193 220",
+        blue: "140 170 238",
+        lavender: "186 187 241",
+        text: "198 208 245",
+        subtext1: "181 191 226",
+        subtext0: "165 173 206",
+        overlay2: "148 156 187",
+        overlay1: "131 139 167",
+        overlay0: "115 121 148",
+        surface2: "98 104 128",
+        surface1: "81 87 109",
+        surface0: "65 69 89",
+        base: "48 52 70",
+        mantle: "41 44 60",
+        crust: "35 38 52"
+    }
+};
+
 const UI = {
     elements: {
         leftPanel: document.getElementById('left-panel'),
@@ -15,12 +74,14 @@ const UI = {
         statusText: document.getElementById('status-text'),
         generateBtn: document.getElementById('generate-btn'),
         sourceText: document.getElementById('source-text'),
+        themeToggleBtn: document.getElementById('theme-toggle-btn'),
     },
 
     state: {
         isPanelCollapsed: false,
         totalCards: 0,
         completedCards: 0,
+        currentTheme: 'latte',
     },
 
     callbacks: {
@@ -31,11 +92,16 @@ const UI = {
         this.bindEvents();
         this.checkResponsive();
         window.addEventListener('resize', () => this.checkResponsive());
+
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme') || 'latte';
+        this.setTheme(savedTheme);
     },
 
     bindEvents() {
         this.elements.toggleBtn.addEventListener('click', () => this.togglePanel());
         this.elements.expandBtn.addEventListener('click', () => this.togglePanel());
+        this.elements.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
 
         this.elements.generateBtn.addEventListener('click', () => {
             const text = this.elements.sourceText.value.trim();
@@ -47,6 +113,24 @@ const UI = {
                 this.callbacks.onGenerate(text);
             }
         });
+    },
+
+    setTheme(themeName) {
+        if (!themes[themeName]) return;
+        this.state.currentTheme = themeName;
+        localStorage.setItem('theme', themeName);
+
+        const colors = themes[themeName];
+        const root = document.documentElement;
+
+        for (const [key, value] of Object.entries(colors)) {
+            root.style.setProperty(`--ctp-${key}`, value);
+        }
+    },
+
+    toggleTheme() {
+        const newTheme = this.state.currentTheme === 'latte' ? 'frappe' : 'latte';
+        this.setTheme(newTheme);
     },
 
     togglePanel() {
@@ -117,13 +201,14 @@ const UI = {
             // Staggered animation
             setTimeout(() => {
                 cardEl.classList.remove('opacity-0', 'translate-y-4');
+                cardEl.classList.add('animate-flip-in');
             }, index * 150);
         });
     },
 
     createCardElement(card, index) {
         const div = document.createElement('div');
-        div.className = `bg-ctp-surface0 rounded-xl p-6 shadow-lg border border-ctp-surface1 opacity-0 translate-y-4 transition-all duration-500 hover:border-ctp-blue hover:shadow-xl flex flex-col gap-4 ${card.size === 'large' ? 'md:col-span-2' : ''}`;
+        div.className = `bg-ctp-surface0 rounded-xl p-6 shadow-lg border border-ctp-surface1 opacity-0 translate-y-4 transition-all duration-500 hover:border-ctp-blue hover:shadow-xl flex flex-col gap-4 card-${card.type} ${card.size === 'large' ? 'md:col-span-2' : ''}`;
         div.dataset.id = index;
         const isSupported = this.isSupportedCard(card.type);
 
@@ -228,9 +313,8 @@ const UI = {
         if (card.type === 'choice' || card.type === 'boolean') {
             const selected = contentArea.querySelector('input:checked');
             if (!selected) {
-                // Shake animation for error
-                cardEl.classList.add('animate-pulse');
-                setTimeout(() => cardEl.classList.remove('animate-pulse'), 500);
+                cardEl.classList.add('animate-shake');
+                setTimeout(() => cardEl.classList.remove('animate-shake'), 500);
                 return;
             }
             userAnswer = parseInt(selected.value);
@@ -239,8 +323,8 @@ const UI = {
             const input = contentArea.querySelector('input');
             userAnswer = input.value.trim();
             if (!userAnswer) {
-                cardEl.classList.add('animate-pulse');
-                setTimeout(() => cardEl.classList.remove('animate-pulse'), 500);
+                cardEl.classList.add('animate-shake');
+                setTimeout(() => cardEl.classList.remove('animate-shake'), 500);
                 return;
             }
             // Simple fuzzy match
@@ -254,6 +338,7 @@ const UI = {
 
         feedbackArea.classList.remove('hidden');
         if (isCorrect) {
+            cardEl.classList.add('card-correct', 'animate-bounce-custom');
             feedbackArea.classList.add('bg-ctp-green/10', 'border-ctp-green/20', 'text-ctp-green');
             feedbackArea.innerHTML = `
                 <div class="flex items-center gap-2 font-bold mb-1">
@@ -265,6 +350,7 @@ const UI = {
             this.state.completedCards++;
             this.updateProgressUI();
         } else {
+            cardEl.classList.add('card-incorrect', 'animate-shake');
             feedbackArea.classList.add('bg-ctp-red/10', 'border-ctp-red/20', 'text-ctp-red');
             feedbackArea.innerHTML = `
                 <div class="flex items-center gap-2 font-bold mb-1">
