@@ -229,11 +229,19 @@ Schema: [{"type": "choice"|"boolean"|"fill", "question": "...", "options": ["A",
 
 // --- 5. 路由 ---
 app.post('/api/upload-video', upload.single('video'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: "No video file" });
+    console.log('/api/upload-video received');
+    if (!req.file) {
+        console.warn('/api/upload-video: no file received');
+        return res.status(400).json({ error: "No video file" });
+    }
+    console.log(`/api/upload-video: received file ${req.file.originalname} -> ${req.file.path}`);
     const taskId = uuidv4();
     tasks[taskId] = { status: 'processing', progress: 0, message: 'Starting...', startTime: Date.now() };
     res.json({ taskId });
-    processVideoTask(taskId, req.file.path);
+    // 异步处理视频任务（后台）
+    processVideoTask(taskId, req.file.path).catch(err => {
+        console.error(`processVideoTask ${taskId} threw:`, err && err.message ? err.message : err);
+    });
 });
 
 app.get('/api/task/:id', (req, res) => {
@@ -243,22 +251,29 @@ app.get('/api/task/:id', (req, res) => {
 });
 
 app.post('/api/generate', async (req, res) => {
+    console.log('/api/generate received');
+    console.log('body preview:', typeof req.body.text === 'string' ? `${req.body.text.slice(0, 80)}${req.body.text.length > 80 ? '...' : ''}` : typeof req.body.text);
     try {
+        console.log('Calling base model...', baseConfig.model);
         const completion = await clientBase.chat.completions.create({
             model: baseConfig.model,
             messages: [{ role: "user", content: req.body.text || '' }]
         });
+        console.log('Base model call completed');
 
         const responseContent = completion.choices?.[0]?.message?.content || '';
+        console.log('Model response length:', responseContent.length);
         try {
             const clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
             const parsed = JSON.parse(clean);
             return res.json(parsed);
         } catch (e) {
+            console.warn('Response not JSON, returning raw text');
             return res.json({ text: responseContent });
         }
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        console.error('/api/generate error:', e && e.message ? e.message : e);
+        res.status(500).json({ error: e.message || String(e) });
     }
 });
 
