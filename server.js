@@ -9,7 +9,7 @@ const ffmpeg = require('fluent-ffmpeg');
 try {
     const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
     ffmpeg.setFfmpegPath(ffmpegPath);
-    
+
     // ✅ 新增：配置 ffprobe 路径 (解决 "Cannot find ffprobe" 报错)
     const ffprobePath = require('@ffprobe-installer/ffprobe').path;
     ffmpeg.setFfprobePath(ffprobePath);
@@ -39,7 +39,7 @@ function loadApiConfig() {
         key: process.env.API_KEY || '',
         baseUrl: 'https://www.sophnet.com/api/open-apis/v1',
         // 使用多模态模型 (视觉理解)
-        model: 'Qwen2.5-VL-72B-Instruct', 
+        model: 'Qwen2.5-VL-72B-Instruct',
     };
 
     if (fs.existsSync(apiPath)) {
@@ -48,7 +48,7 @@ function loadApiConfig() {
             const keyMatch = raw.match(/apikey\s*[:=]\s*(\S+)/i);
             const baseMatch = raw.match(/base[_-]?url\s*[:=]\s*["\']?([^"'\s,]+)["\']?/i);
             const modelMatch = raw.match(/model\s*[:=]\s*["\']?([^"'\s,]+)["\']?/i);
-            
+
             if (keyMatch) config.key = keyMatch[1].trim();
             if (baseMatch) config.baseUrl = baseMatch[1].trim();
             if (modelMatch) config.model = modelMatch[1].trim();
@@ -61,10 +61,33 @@ function loadApiConfig() {
 
 const apiConfig = loadApiConfig();
 
-const client = new OpenAI({
-    apiKey: apiConfig.key,
-    baseURL: apiConfig.baseUrl
-});
+// 最小改动：同时加载 `api_base` 与 `api_video`（若存在），并创建两个客户端
+function loadApiFile(filename, defaults) {
+    const p = path.join(__dirname, filename);
+    const cfg = Object.assign({}, defaults);
+    if (!fs.existsSync(p)) return cfg;
+    try {
+        const raw = fs.readFileSync(p, 'utf8');
+        const keyMatch = raw.match(/apikey\s*[:=]\s*(\S+)/i);
+        const baseMatch = raw.match(/base[_-]?url\s*[:=]\s*["']?([^"'\s,]+)["']?/i);
+        const modelMatch = raw.match(/model\s*[:=]\s*["']?([^"'\s,]+)["']?/i);
+        if (keyMatch) cfg.key = keyMatch[1].trim();
+        if (baseMatch) cfg.baseUrl = baseMatch[1].trim();
+        if (modelMatch) cfg.model = modelMatch[1].trim();
+    } catch (e) {
+        console.error(`读取 ${filename} 失败:`, e.message);
+    }
+    return cfg;
+}
+
+const defaultBase = { key: process.env.API_KEY || '', baseUrl: 'https://www.sophnet.com/api/open-apis/v1', model: 'DeepSeek-V3.2' };
+const defaultVideo = { key: process.env.API_KEY || '', baseUrl: 'https://www.sophnet.com/api/open-apis/v1', model: 'Qwen2.5-VL-72B-Instruct' };
+
+const baseConfig = loadApiFile('api_base', defaultBase);
+const videoConfig = loadApiFile('api_video', defaultVideo);
+
+const clientBase = new OpenAI({ apiKey: baseConfig.key, baseURL: baseConfig.baseUrl });
+const clientVideo = new OpenAI({ apiKey: videoConfig.key, baseURL: videoConfig.baseUrl });
 
 const tasks = {};
 
@@ -74,19 +97,19 @@ const extractFrames = (videoPath, outputDir, count = 4) => {
         // 这一步现在应该能正常工作了 (ffprobe 已就绪)
         ffmpeg.ffprobe(videoPath, (err, metadata) => {
             if (err) return reject(err);
-            
+
             const duration = metadata.format.duration;
             // 均匀截取 4 张图
             const interval = duration / (count + 1);
-            const timestamps = Array.from({length: count}, (_, i) => (i + 1) * interval);
+            const timestamps = Array.from({ length: count }, (_, i) => (i + 1) * interval);
             const screenshots = [];
 
             let completed = 0;
-            
+
             timestamps.forEach((time, index) => {
                 const filename = `frame_${path.basename(videoPath)}_${index}.jpg`;
                 const outputPath = path.join(outputDir, filename);
-                
+
                 ffmpeg(videoPath)
                     .screenshots({
                         timestamps: [time],
@@ -123,14 +146,14 @@ async function processVideoTask(taskId, videoPath) {
         // 步骤 1: 截取关键帧
         task.message = '正在分析视频画面 (截取关键帧)...';
         console.log(`开始处理视频: ${videoPath}`);
-        
+
         const frames = await extractFrames(videoPath, 'uploads/', 4);
         framePaths.push(...frames);
         task.progress = 40;
 
-        // 步骤 2: 构造多模态请求
-        task.message = `AI 正在观看视频 (${apiConfig.model})...`;
-        console.log(`调用模型: ${apiConfig.model}`);
+        // 步骤 2: 构造多模态请求 (使用 video 配置)
+        task.message = `AI 正在观看视频 (${videoConfig.model})...`;
+        console.log(`调用模型: ${videoConfig.model}`);
 
         const content = [
             { type: "text", text: "这是视频课程的 4 张关键截图。请根据截图中的 PPT、板书或画面内容，提取核心知识点，并生成 3-5 道互动练习题。" }
@@ -152,8 +175,8 @@ Strictly return ONLY valid JSON array. No markdown.
 Schema: [{"type": "choice"|"boolean"|"fill", "question": "...", "options": ["A","B"], "correctIndex": 0, "explanation": "..."}]
         `;
 
-        const completion = await client.chat.completions.create({
-            model: apiConfig.model,
+        const completion = await clientVideo.chat.completions.create({
+            model: videoConfig.model,
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: content }
@@ -167,7 +190,7 @@ Schema: [{"type": "choice"|"boolean"|"fill", "question": "...", "options": ["A",
         task.message = '正在生成卡片...';
         const responseContent = completion.choices[0].message.content;
         const clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
-        
+
         let cards;
         try {
             cards = JSON.parse(clean);
@@ -211,14 +234,21 @@ app.get('/api/task/:id', (req, res) => {
 
 app.post('/api/generate', async (req, res) => {
     try {
-        const completion = await client.chat.completions.create({
-            model: apiConfig.model,
+        const completion = await clientBase.chat.completions.create({
+            model: baseConfig.model,
             messages: [{ role: "user", content: req.body.text || '' }]
         });
-        // 简单处理纯文本
-        res.json([]); 
+
+        const responseContent = completion.choices?.[0]?.message?.content || '';
+        try {
+            const clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const parsed = JSON.parse(clean);
+            return res.json(parsed);
+        } catch (e) {
+            return res.json({ text: responseContent });
+        }
     } catch (e) {
-        res.status(500).json({error: e.message});
+        res.status(500).json({ error: e.message });
     }
 });
 
