@@ -1,36 +1,68 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize UI
+    // 1. 初始化 UI
     UI.init();
 
-    // Register the generation callback
-    UI.callbacks.onGenerate = async (text) => {
+    // 2. 注册文本生成回调
+    UI.callbacks.onGenerateText = async (text) => {
+        runGeneration(async () => await AI.generateCards(text));
+    };
+
+    // 3. 注册视频生成回调 (含轮询逻辑)
+    UI.callbacks.onGenerateVideo = async (file) => {
+        runGeneration(async () => {
+            // A. 上传视频
+            UI.updateStatus("正在上传视频...");
+            const { taskId } = await AI.uploadVideo(file);
+            
+            // B. 轮询任务状态
+            return new Promise((resolve, reject) => {
+                const poll = setInterval(async () => {
+                    try {
+                        const task = await AI.checkTaskStatus(taskId);
+                        
+                        if (task.status === 'completed') {
+                            clearInterval(poll);
+                            resolve(task.result); // 成功拿到题目
+                        } else if (task.status === 'failed') {
+                            clearInterval(poll);
+                            reject(new Error(task.error || '任务处理失败'));
+                        } else {
+                            // C. 更新进度条文字
+                            UI.updateStatus(`${task.message} (${task.progress}%)`);
+                        }
+                    } catch (e) {
+                        clearInterval(poll);
+                        reject(e);
+                    }
+                }, 2000); // 每2秒查询一次
+            });
+        });
+    };
+
+    // --- 通用执行器 ---
+    async function runGeneration(actionFn) {
         try {
-            // Update UI state
             UI.setLoading(true);
             UI.clearCards();
+            
+            // 执行传入的生成函数 (文本或视频)
+            const cards = await actionFn();
 
-            // Call AI service
-            // Note: This expects the backend server to be running to handle /api/generate
-            const cards = await AI.generateCards(text);
-
-            // Render results
-            if (cards && cards.length > 0) {
+            if (cards && Array.isArray(cards) && cards.length > 0) {
                 UI.renderCards(cards);
+                UI.updateStatus("生成完成");
             } else {
-                // Handle empty or invalid response
-                alert('未能根据提供的文本生成有效的学习卡片。请尝试提供更多上下文或不同的文本。');
+                alert('AI 未能生成有效的内容，请尝试更换资料。');
                 UI.elements.emptyState.classList.remove('hidden');
             }
         } catch (error) {
-            console.error('Application Error:', error);
-            alert('生成过程中发生错误: ' + (error.message || '未知错误'));
+            console.error(error);
+            alert('发生错误: ' + (error.message || '未知错误'));
             UI.elements.emptyState.classList.remove('hidden');
         } finally {
-            // Reset UI state
             UI.setLoading(false);
         }
-    };
+    }
 
-    // Optional: Add some initial demo data or check server status
-    console.log('Application initialized. Waiting for user input.');
+    console.log('App initialized.');
 });

@@ -60,20 +60,51 @@
             <h1 class="text-xl font-bold text-ctp-mauve truncate">学习助手</h1>
             <button id="toggle-panel-btn"
                 class="text-ctp-overlay1 hover:text-ctp-text transition-colors p-1 rounded hover:bg-ctp-surface0">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                 </svg>
             </button>
         </div>
 
-        <!-- 内容区域 -->
         <div class="flex-1 p-4 flex flex-col overflow-hidden panel-content transition-opacity duration-200">
-            <label for="source-text" class="block text-sm font-medium text-ctp-subtext0 mb-2">输入学习资料</label>
-            <textarea id="source-text"
-                class="flex-1 w-full bg-ctp-surface0 border border-ctp-surface1 rounded-lg p-3 text-ctp-text placeholder-ctp-overlay0 focus:outline-none focus:border-ctp-blue focus:ring-1 focus:ring-ctp-blue resize-none transition-colors"
-                placeholder="在此粘贴文本，AI 将为您生成学习卡片..."></textarea>
+            
+            <div class="flex p-1 bg-ctp-surface0 rounded-lg mb-4">
+                <button id="tab-text" class="flex-1 py-2 text-sm font-bold rounded-md bg-ctp-blue text-ctp-base shadow-sm transition-all">
+                    文本输入
+                </button>
+                <button id="tab-video" class="flex-1 py-2 text-sm font-medium rounded-md text-ctp-subtext0 hover:text-ctp-text transition-all">
+                    视频解析
+                </button>
+            </div>
+
+            <div class="flex-1 relative overflow-hidden">
+                <div id="panel-text" class="absolute inset-0 flex flex-col transition-transform duration-300">
+                    <textarea id="source-text"
+                        class="flex-1 w-full bg-ctp-surface0 border border-ctp-surface1 rounded-lg p-3 text-ctp-text placeholder-ctp-overlay0 focus:outline-none focus:border-ctp-blue focus:ring-1 focus:ring-ctp-blue resize-none transition-colors"
+                        placeholder="在此粘贴文本，AI 将为您生成学习卡片..."></textarea>
+                </div>
+
+                <div id="panel-video" class="absolute inset-0 flex flex-col translate-x-full transition-transform duration-300">
+                    <div id="drop-zone" class="flex-1 border-2 border-dashed border-ctp-surface1 rounded-lg flex flex-col items-center justify-center hover:border-ctp-blue hover:bg-ctp-surface0/50 transition-all cursor-pointer relative group">
+                        <input type="file" id="video-input" accept="video/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                        <div class="text-ctp-blue mb-2 group-hover:scale-110 transition-transform">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                        </div>
+                        <p class="text-sm text-ctp-text font-medium">点击或拖拽上传视频</p>
+                        <p class="text-xs text-ctp-overlay0 mt-1">支持 MP4, MOV</p>
+                    </div>
+                    <div id="video-preview" class="hidden mt-4 h-40 bg-ctp-crust rounded-lg overflow-hidden relative border border-ctp-surface1">
+                        <video id="preview-player" class="w-full h-full object-contain" controls></video>
+                        <button id="clear-video" class="absolute top-2 right-2 bg-ctp-red text-ctp-base rounded-full p-1 shadow hover:bg-ctp-maroon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <div class="mt-4">
                 <button id="generate-btn"
@@ -83,21 +114,14 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                    <span>生成卡片</span>
+                    <span>开始生成</span>
                 </button>
             </div>
         </div>
-
-        <!-- 折叠后的垂直标题 -->
-        <div
-            class="hidden collapsed-content absolute inset-0 flex-col items-center pt-4 transition-opacity duration-200 opacity-0">
-            <button id="expand-panel-btn"
-                class="mb-4 text-ctp-blue hover:text-ctp-sky p-2 rounded-full hover:bg-ctp-surface0 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                </svg>
+        
+        <div class="hidden collapsed-content absolute inset-0 flex-col items-center pt-4 transition-opacity duration-200 opacity-0">
+             <button id="expand-panel-btn" class="mb-4 text-ctp-blue hover:text-ctp-sky p-2 rounded-full hover:bg-ctp-surface0 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
             </button>
             <div class="vertical-text text-ctp-overlay1 font-bold tracking-widest select-none mt-4">
                 学习助手</div>
