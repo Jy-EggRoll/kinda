@@ -28,7 +28,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 // 增加 JSON 大小限制 (为了传图片 Base64)
 app.use(express.json({ limit: '50mb' }));
-app.use(express.static(path.join(__dirname, '.')));
+// 仅暴露必要静态资源，避免泄露本地配置文件（如 api_base / api_video）
+app.use('/css', express.static(path.join(__dirname, 'css')));
+app.use('/js', express.static(path.join(__dirname, 'js')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -88,6 +91,13 @@ const videoConfig = loadApiFile('api_video', defaultVideo);
 
 const clientBase = new OpenAI({ apiKey: baseConfig.key, baseURL: baseConfig.baseUrl });
 const clientVideo = new OpenAI({ apiKey: videoConfig.key, baseURL: videoConfig.baseUrl });
+
+// 启动时打印配置摘要（遮掩密钥，只显示尾部 4 位），便于本地调试为何调用失败
+function maskKey(k) { if (!k) return '(empty)'; return '***' + k.slice(-4); }
+console.log('API Base:', { base_url: baseConfig.baseUrl, model: baseConfig.model, key: maskKey(baseConfig.key) });
+console.log('API Video:', { base_url: videoConfig.baseUrl, model: videoConfig.model, key: maskKey(videoConfig.key) });
+if (!baseConfig.key) console.warn('警告：`api_base` 中未检测到 apikey，文本解析可能失败');
+if (!videoConfig.key) console.warn('警告：`api_video` 中未检测到 apikey，视频解析可能失败');
 
 const tasks = {};
 
