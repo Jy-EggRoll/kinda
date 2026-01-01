@@ -9,15 +9,12 @@ const ffmpeg = require('fluent-ffmpeg');
 try {
     const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
     ffmpeg.setFfmpegPath(ffmpegPath);
-    
-    // ✅ 新增：配置 ffprobe 路径 (解决 "Cannot find ffprobe" 报错)
     const ffprobePath = require('@ffprobe-installer/ffprobe').path;
     ffmpeg.setFfprobePath(ffprobePath);
 } catch (e) {
     console.warn("未检测到自动安装的二进制文件，尝试使用系统路径...", e.message);
 }
 
-// ✅ 修复：使用原生 crypto 替代 uuid 包
 const { randomUUID: uuidv4 } = require('crypto');
 const cors = require('cors');
 const OpenAI = require('openai');
@@ -26,7 +23,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-// 增加 JSON 大小限制 (为了传图片 Base64)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '.')));
 
@@ -38,7 +34,6 @@ function loadApiConfig() {
     const config = {
         key: process.env.API_KEY || '',
         baseUrl: 'https://www.sophnet.com/api/open-apis/v1',
-        // 使用多模态模型 (视觉理解)
         model: 'Qwen2.5-VL-72B-Instruct', 
     };
 
@@ -68,36 +63,47 @@ const client = new OpenAI({
 
 const tasks = {};
 
-// --- 3. 核心工具：视频截帧 ---
+// --- 3. 核心工具：视频截帧 (修改版：返回时间戳) ---
 const extractFrames = (videoPath, outputDir, count = 4) => {
     return new Promise((resolve, reject) => {
-        // 这一步现在应该能正常工作了 (ffprobe 已就绪)
         ffmpeg.ffprobe(videoPath, (err, metadata) => {
             if (err) return reject(err);
             
             const duration = metadata.format.duration;
-            // 均匀截取 4 张图
             const interval = duration / (count + 1);
-            const timestamps = Array.from({length: count}, (_, i) => (i + 1) * interval);
-            const screenshots = [];
-
+            // 记录每一帧的具体时间点
+            const frameData = Array.from({length: count}, (_, i) => {
+                return {
+                    time: (i + 1) * interval,
+                    index: i
+                };
+            });
+            
+            const results = [];
             let completed = 0;
             
-            timestamps.forEach((time, index) => {
-                const filename = `frame_${path.basename(videoPath)}_${index}.jpg`;
+            frameData.forEach((item) => {
+                const filename = `frame_${path.basename(videoPath)}_${item.index}.jpg`;
                 const outputPath = path.join(outputDir, filename);
                 
                 ffmpeg(videoPath)
                     .screenshots({
-                        timestamps: [time],
+                        timestamps: [item.time],
                         filename: filename,
                         folder: outputDir,
-                        size: '800x?' // 限制宽800，高自适应
+                        size: '800x?'
                     })
                     .on('end', () => {
-                        screenshots.push(outputPath);
+                        results.push({
+                            path: outputPath,
+                            timestamp: Math.floor(item.time) // 向下取整秒数
+                        });
                         completed++;
-                        if (completed === count) resolve(screenshots);
+                        if (completed === count) {
+                            // 按时间排序，保证顺序正确
+                            results.sort((a, b) => a.timestamp - b.timestamp);
+                            resolve(results);
+                        }
                     })
                     .on('error', (err) => {
                         console.error("截图失败:", err);
@@ -108,7 +114,6 @@ const extractFrames = (videoPath, outputDir, count = 4) => {
     });
 };
 
-// 辅助：文件转 Base64
 const fileToBase64 = (filePath) => {
     const bitmap = fs.readFileSync(filePath);
     return Buffer.from(bitmap).toString('base64');
@@ -120,24 +125,29 @@ async function processVideoTask(taskId, videoPath) {
     const framePaths = [];
 
     try {
-        // 步骤 1: 截取关键帧
         task.message = '正在分析视频画面 (截取关键帧)...';
         console.log(`开始处理视频: ${videoPath}`);
         
+        // 获取带时间戳的帧
         const frames = await extractFrames(videoPath, 'uploads/', 4);
-        framePaths.push(...frames);
+        // 保存路径以便后续清理
+        frames.forEach(f => framePaths.push(f.path));
         task.progress = 40;
 
-        // 步骤 2: 构造多模态请求
         task.message = `AI 正在观看视频 (${apiConfig.model})...`;
-        console.log(`调用模型: ${apiConfig.model}`);
+        
+        // 构建提示词，明确指出每张图的时间点
+        let promptText = "这是视频课程的 4 张关键截图。请根据截图提取核心知识点，并生成 3-5 道互动练习题。";
+        promptText += "\n重要：请根据知识点出现的画面时间，将每道题关联到最接近的时间戳 (timestamp)。";
 
-        const content = [
-            { type: "text", text: "这是视频课程的 4 张关键截图。请根据截图中的 PPT、板书或画面内容，提取核心知识点，并生成 3-5 道互动练习题。" }
-        ];
+        const content = [{ type: "text", text: promptText }];
 
-        frames.forEach(framePath => {
-            const base64Image = fileToBase64(framePath);
+        frames.forEach((frame, index) => {
+            const base64Image = fileToBase64(frame.path);
+            content.push({
+                type: "text",
+                text: `截图 ${index + 1} (出现在视频第 ${frame.timestamp} 秒):`
+            });
             content.push({
                 type: "image_url",
                 image_url: {
@@ -146,10 +156,21 @@ async function processVideoTask(taskId, videoPath) {
             });
         });
 
+        // 修改 System Prompt，强制要求 JSON 包含 timestamp
         const systemPrompt = `
 You are an educational AI assistant. Analyze the provided video frames and generate learning cards.
 Strictly return ONLY valid JSON array. No markdown.
-Schema: [{"type": "choice"|"boolean"|"fill", "question": "...", "options": ["A","B"], "correctIndex": 0, "explanation": "..."}]
+Schema: [
+  {
+    "type": "choice"|"boolean"|"fill", 
+    "question": "...", 
+    "options": ["A","B"], 
+    "correctIndex": 0, 
+    "explanation": "...",
+    "timestamp": 120 
+  }
+]
+Note: "timestamp" is the time in seconds (integer) where this knowledge point appears in the video. Use the provided screenshot times as reference.
         `;
 
         const completion = await client.chat.completions.create({
@@ -162,9 +183,8 @@ Schema: [{"type": "choice"|"boolean"|"fill", "question": "...", "options": ["A",
         });
 
         task.progress = 80;
-
-        // 步骤 3: 解析结果
         task.message = '正在生成卡片...';
+        
         const responseContent = completion.choices[0].message.content;
         const clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
         
@@ -186,7 +206,6 @@ Schema: [{"type": "choice"|"boolean"|"fill", "question": "...", "options": ["A",
         task.status = 'failed';
         task.error = error.message || "Unknown Error";
     } finally {
-        // 清理
         if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
         framePaths.forEach(p => {
             if (fs.existsSync(p)) fs.unlinkSync(p);
@@ -210,13 +229,17 @@ app.get('/api/task/:id', (req, res) => {
 });
 
 app.post('/api/generate', async (req, res) => {
+    // 文本生成保持简单逻辑，通常不带时间戳
     try {
         const completion = await client.chat.completions.create({
             model: apiConfig.model,
-            messages: [{ role: "user", content: req.body.text || '' }]
+            messages: [
+                { role: "system", content: `You are a helper. Generate valid JSON array for learning cards based on text. Schema: [{"type": "choice"|"boolean"|"fill", "question": "...", "options": ["..."], "correctIndex": 0, "explanation": "..."}]` },
+                { role: "user", content: req.body.text || '' }
+            ]
         });
-        // 简单处理纯文本
-        res.json([]); 
+        const clean = completion.choices[0].message.content.replace(/```json/gi, '').replace(/```/g, '').trim();
+        res.json(JSON.parse(clean)); 
     } catch (e) {
         res.status(500).json({error: e.message});
     }

@@ -7,6 +7,7 @@
     <title>AI 交互式学习</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@catppuccin/css@1.2.0/dist/catppuccin-latte.css">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -48,11 +49,27 @@
             }
         }
     </script>
+    <style>
+        /* 简单的搜索高亮样式 */
+        .highlight {
+            background-color: #f9e2af; /* ctp-yellow */
+            color: #1e1e2e; /* ctp-base */
+            border-radius: 2px;
+            padding: 0 2px;
+        }
+        /* 隐藏滚动条但保留功能 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
 </head>
 
 <body class="bg-ctp-base text-ctp-text h-screen overflow-hidden flex selection:bg-ctp-pink selection:text-ctp-base">
 
-    <!-- 左侧面板 -->
     <aside id="left-panel"
         class="bg-ctp-mantle border-r border-ctp-surface0 flex flex-col transition-all duration-300 ease-in-out w-96 relative z-20">
         <div class="p-4 border-b border-ctp-surface0 flex justify-between items-center">
@@ -66,7 +83,6 @@
         </div>
 
         <div class="flex-1 p-4 flex flex-col overflow-hidden panel-content transition-opacity duration-200">
-            
             <div class="flex p-1 bg-ctp-surface0 rounded-lg mb-4">
                 <button id="tab-text" class="flex-1 py-2 text-sm font-bold rounded-md bg-ctp-blue text-ctp-base shadow-sm transition-all">
                     文本输入
@@ -126,33 +142,52 @@
         </div>
     </aside>
 
-    <!-- 右侧展示区 -->
     <main class="flex-1 relative flex flex-col h-full overflow-hidden bg-ctp-base">
-        <!-- 顶部状态/提示 -->
         <header
-            class="h-16 border-b border-ctp-surface0 flex items-center justify-between px-6 bg-ctp-base/95 backdrop-blur z-10">
-            <div class="flex items-center gap-4">
+            class="h-16 border-b border-ctp-surface0 flex items-center justify-between px-6 bg-ctp-base/95 backdrop-blur z-10 shrink-0">
+            <div class="flex items-center gap-4 flex-1">
                 <div id="progress-container" class="hidden flex items-center gap-2">
                     <span class="text-sm text-ctp-subtext0">进度</span>
-                    <div class="w-32 h-2 bg-ctp-surface0 rounded-full overflow-hidden">
+                    <div class="w-24 md:w-32 h-2 bg-ctp-surface0 rounded-full overflow-hidden">
                         <div id="progress-bar" class="h-full bg-ctp-green w-0 transition-all duration-500"></div>
                     </div>
                     <span id="progress-text" class="text-sm text-ctp-text font-mono">0/0</span>
                 </div>
+
+                <div class="h-4 w-px bg-ctp-surface1 hidden md:block"></div>
+
+                <div id="search-container" class="hidden flex-1 max-w-lg flex items-center gap-2">
+                    <div class="relative flex-1">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-ctp-overlay0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                        </span>
+                        <input type="text" id="search-input" placeholder="搜索知识点..." class="w-full bg-ctp-surface0 border border-ctp-surface1 rounded-full py-1.5 pl-9 pr-4 text-sm text-ctp-text focus:outline-none focus:border-ctp-blue focus:ring-1 focus:ring-ctp-blue transition-all">
+                    </div>
+                    <select id="filter-select" class="bg-ctp-surface0 border border-ctp-surface1 rounded-lg py-1.5 px-3 text-sm text-ctp-text focus:outline-none focus:border-ctp-blue">
+                        <option value="all">全部题目</option>
+                        <option value="wrong">只看错题</option>
+                        <option value="choice">选择题</option>
+                        <option value="fill">填空题</option>
+                    </select>
+                </div>
             </div>
+
             <div class="flex items-center gap-3">
-                <span id="status-indicator" class="flex h-3 w-3 relative">
-                    <span
-                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-ctp-green opacity-75 hidden"></span>
-                    <span class="relative inline-flex rounded-full h-3 w-3 bg-ctp-surface2"></span>
-                </span>
-                <span id="status-text" class="text-sm text-ctp-overlay0">就绪</span>
+                <button id="report-btn" class="hidden bg-ctp-peach/10 text-ctp-peach hover:bg-ctp-peach/20 border border-ctp-peach/20 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    生成报告
+                </button>
+                <div class="flex items-center gap-2">
+                    <span id="status-indicator" class="flex h-3 w-3 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-ctp-green opacity-75 hidden"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-ctp-surface2"></span>
+                    </span>
+                    <span id="status-text" class="text-sm text-ctp-overlay0 hidden md:inline">就绪</span>
+                </div>
             </div>
         </header>
 
-        <!-- 卡片容器 -->
         <div id="cards-container" class="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth relative">
-            <!-- 欢迎/空状态 -->
             <div id="empty-state"
                 class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 opacity-100 transition-opacity duration-500">
                 <div class="w-24 h-24 bg-ctp-surface0 rounded-full flex items-center justify-center mb-6 text-ctp-blue">
@@ -163,17 +198,63 @@
                     </svg>
                 </div>
                 <h2 class="text-2xl font-bold text-ctp-text mb-2">开始您的学习之旅</h2>
-                <p class="text-ctp-subtext0 max-w-md">在左侧粘贴文本并点击生成，AI 将为您创建交互式学习卡片。</p>
+                <p class="text-ctp-subtext0 max-w-md">在左侧粘贴文本或上传视频，AI 将为您创建交互式学习卡片。</p>
             </div>
 
-            <!-- 卡片网格 (动态生成) -->
             <div id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-7xl mx-auto pb-20">
-                <!-- Cards will be injected here -->
-            </div>
+                </div>
         </div>
     </main>
 
-    <!-- 脚本引入 -->
+    <div id="report-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-ctp-base border border-ctp-surface1 rounded-2xl p-8 max-w-md w-full shadow-2xl transform scale-95 transition-transform duration-300 relative overflow-hidden">
+            <div id="report-content" class="bg-ctp-base p-4 rounded-xl border border-ctp-surface0">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-bold text-ctp-mauve mb-1">学习成就报告</h3>
+                    <p class="text-sm text-ctp-subtext0" id="report-date">2026/01/01</p>
+                </div>
+                
+                <div class="flex justify-center mb-8 relative">
+                    <svg class="w-32 h-32 transform -rotate-90">
+                        <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="12" fill="transparent" class="text-ctp-surface0" />
+                        <circle id="report-score-ring" cx="64" cy="64" r="56" stroke="currentColor" stroke-width="12" fill="transparent" stroke-dasharray="351.86" stroke-dashoffset="0" class="text-ctp-green transition-all duration-1000" />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span id="report-score" class="text-3xl font-bold text-ctp-text">0</span>
+                        <span class="text-xs text-ctp-subtext0 uppercase">得分</span>
+                    </div>
+                </div>
+
+                <div class="space-y-3 mb-6">
+                    <div class="flex justify-between items-center p-3 bg-ctp-surface0 rounded-lg">
+                        <span class="text-ctp-subtext1">完成题目</span>
+                        <span id="report-total" class="font-bold text-ctp-text">0</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-ctp-surface0 rounded-lg">
+                        <span class="text-ctp-subtext1">正确率</span>
+                        <span id="report-accuracy" class="font-bold text-ctp-blue">0%</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-ctp-surface0 rounded-lg">
+                        <span class="text-ctp-subtext1">错题数</span>
+                        <span id="report-wrong" class="font-bold text-ctp-red">0</span>
+                    </div>
+                </div>
+
+                <div class="text-center text-xs text-ctp-overlay0 mt-4 border-t border-ctp-surface0 pt-4">
+                    Generated by AI Interactive Learning
+                </div>
+            </div>
+
+            <div class="mt-6 flex gap-3">
+                <button id="close-report" class="flex-1 py-2 text-ctp-overlay1 hover:text-ctp-text font-medium transition-colors">关闭</button>
+                <button id="download-report" class="flex-1 py-2 bg-ctp-blue hover:bg-ctp-sapphire text-ctp-base font-bold rounded-lg transition-colors flex justify-center items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    保存图片
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/ui.js"></script>
     <script src="js/ai.js"></script>
     <script src="js/app.js"></script>
