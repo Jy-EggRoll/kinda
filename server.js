@@ -255,9 +255,20 @@ app.post('/api/generate', async (req, res) => {
     console.log('body preview:', typeof req.body.text === 'string' ? `${req.body.text.slice(0, 80)}${req.body.text.length > 80 ? '...' : ''}` : typeof req.body.text);
     try {
         console.log('Calling base model...', baseConfig.model);
+        const systemPromptText = `
+You are an educational AI assistant. Given the user's source text (course notes, lecture transcript, or article), extract the core knowledge and generate learning cards.
+Strictly return ONLY a valid JSON array (no markdown, no commentary). Each item must follow the schema:
+[{"type":"choice"|"boolean"|"fill","question":"...","options":["A","B"],"correctIndex":0,"explanation":"..."}]
+If the content is insufficient to create cards, return an empty JSON array [].
+`;
+
         const completion = await clientBase.chat.completions.create({
             model: baseConfig.model,
-            messages: [{ role: "user", content: req.body.text || '' }]
+            messages: [
+                { role: 'system', content: systemPromptText },
+                { role: 'user', content: req.body.text || '' }
+            ],
+            max_tokens: 1500
         });
         console.log('Base model call completed');
 
