@@ -1,0 +1,8 @@
+api
+.env
+node_modules/
+.pnpm-store/
+pnpm-debug.log
+yarn-error.log
+npm-debug.log*
+.DS_Store
