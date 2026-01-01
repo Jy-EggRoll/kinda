@@ -263,12 +263,26 @@ app.post('/api/generate', async (req, res) => {
 
         const responseContent = completion.choices?.[0]?.message?.content || '';
         console.log('Model response length:', responseContent.length);
+        // 尝试直接解析 JSON
         try {
             const clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
             const parsed = JSON.parse(clean);
             return res.json(parsed);
         } catch (e) {
-            console.warn('Response not JSON, returning raw text');
+            // 回退：尝试从文本中抽取第一个 JSON 数组
+            const match = responseContent.match(/\[\s*[{\s\S]*?\]\s*/s);
+            if (match) {
+                try {
+                    const parsed2 = JSON.parse(match[0]);
+                    console.log('Extracted JSON array from response');
+                    return res.json(parsed2);
+                } catch (ee) {
+                    console.warn('Extracted array parse failed:', ee.message);
+                }
+            }
+
+            // 打印响应内容前 1000 字用于调试
+            console.warn('Response not JSON. Response preview:', responseContent.slice(0, 1000));
             return res.json({ text: responseContent });
         }
     } catch (e) {
