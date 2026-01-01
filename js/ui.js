@@ -338,7 +338,8 @@ const UI = {
                 return;
             }
             userAnswer = parseInt(selected.value);
-            isCorrect = userAnswer === card.correctIndex;
+            const correctIndex = Number(card.correctIndex);
+            isCorrect = userAnswer === correctIndex;
         } else if (card.type === 'fill') {
             const input = contentArea.querySelector('input');
             userAnswer = input.value.trim();
