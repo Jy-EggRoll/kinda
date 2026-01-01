@@ -359,8 +359,10 @@ const UI = {
             this.state.correctCount++;
             // ✅ 新增：答对时触发庆祝特效
             this.showCelebration();
+            this.playSound('真棒.mp3');
         } else {
             this.state.wrongCount++;
+            this.playSound('曼波.mp3');
         }
 
         this.restoreCardState(contentArea, feedbackArea, card);
@@ -382,6 +384,11 @@ const UI = {
             feedbackArea.className = 'mt-4 p-4 rounded-lg text-sm bg-ctp-red/10 border border-ctp-red/20 text-ctp-red';
             feedbackArea.innerHTML = `<strong>❌ 回答错误</strong><p class="mt-1">${card.explanation || ''}</p>`;
         }
+    },
+
+    playSound(filename) {
+        const audio = new Audio(`audio/${filename}`);
+        audio.play().catch(e => console.error("播放音频失败:", e));
     },
 
     // --- ✅ 新增：庆祝特效逻辑 ---
