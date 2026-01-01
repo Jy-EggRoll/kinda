@@ -36,17 +36,22 @@ const UI = {
         statusDot: document.querySelector('#status-indicator span.relative'),
         statusText: document.getElementById('status-text'),
         
-        // --- 新增：搜索与筛选 ---
+        // --- 搜索与筛选 ---
         searchContainer: document.getElementById('search-container'),
         searchInput: document.getElementById('search-input'),
         filterSelect: document.getElementById('filter-select'),
         
-        // --- 新增：报告 ---
+        // --- 报告 ---
         reportBtn: document.getElementById('report-btn'),
         reportModal: document.getElementById('report-modal'),
         closeReportBtn: document.getElementById('close-report'),
         downloadReportBtn: document.getElementById('download-report'),
         reportContent: document.getElementById('report-content'),
+
+        // --- ✅ 新增：庆祝特效元素 ---
+        celebrationOverlay: document.getElementById('celebration-overlay'),
+        celebrationModal: document.getElementById('celebration-modal'),
+        fireworksCanvas: document.getElementById('fireworks-canvas'),
     },
 
     state: {
@@ -55,7 +60,7 @@ const UI = {
         isPanelCollapsed: false,
         
         // 数据状态
-        allCards: [], // 存储原始数据
+        allCards: [], 
         filteredCards: [],
         
         // 筛选状态
@@ -66,6 +71,9 @@ const UI = {
         completedCount: 0,
         correctCount: 0,
         wrongCount: 0,
+
+        // 烟花状态
+        isFireworksRunning: false,
     },
 
     callbacks: {
@@ -76,11 +84,24 @@ const UI = {
     init() {
         this.bindEvents();
         this.checkResponsive();
-        window.addEventListener('resize', () => this.checkResponsive());
+        this.resizeCanvas(); // 初始化画布大小
+        
+        window.addEventListener('resize', () => {
+            this.checkResponsive();
+            this.resizeCanvas(); // ✅ 窗口调整时重置画布
+        });
+    },
+
+    // --- ✅ 新增：画布适配 ---
+    resizeCanvas() {
+        if (this.elements.fireworksCanvas) {
+            this.elements.fireworksCanvas.width = window.innerWidth;
+            this.elements.fireworksCanvas.height = window.innerHeight;
+        }
     },
 
     bindEvents() {
-        // 侧边栏与模式切换 (保持不变)
+        // 侧边栏与模式切换
         if (this.elements.toggleBtn) this.elements.toggleBtn.addEventListener('click', () => this.togglePanel());
         if (this.elements.expandBtn) this.elements.expandBtn.addEventListener('click', () => this.togglePanel());
         if (this.elements.tabText && this.elements.tabVideo) {
@@ -106,7 +127,7 @@ const UI = {
             });
         }
 
-        // --- 新增：搜索与筛选事件 ---
+        // 搜索与筛选事件
         if (this.elements.searchInput) {
             this.elements.searchInput.addEventListener('input', (e) => {
                 this.state.searchQuery = e.target.value.trim();
@@ -120,35 +141,30 @@ const UI = {
             });
         }
 
-        // --- 新增：视频联动 ---
+        // 视频联动
         if (this.elements.previewPlayer) {
             this.elements.previewPlayer.addEventListener('timeupdate', () => {
                 this.highlightActiveCard(this.elements.previewPlayer.currentTime);
             });
         }
 
-        // --- 新增：报告相关 ---
+        // 报告相关
         if (this.elements.reportBtn) this.elements.reportBtn.addEventListener('click', () => this.showReport());
         if (this.elements.closeReportBtn) this.elements.closeReportBtn.addEventListener('click', () => this.hideReport());
         if (this.elements.downloadReportBtn) this.elements.downloadReportBtn.addEventListener('click', () => this.downloadReportImage());
     },
 
-    // --- 核心逻辑改造：数据加载与筛选 ---
-    
+    // --- 数据加载与筛选 ---
     setCardsData(cardsData) {
-        // 初始化数据
         this.state.allCards = Array.isArray(cardsData) ? cardsData.filter(c => this.isSupportedCard(c.type)) : [];
-        // 为每个卡片附加状态，而不是修改原始数据结构
         this.state.allCards.forEach(card => {
-            card._status = 'pending'; // 'pending' | 'correct' | 'wrong'
+            card._status = 'pending'; 
         });
         
-        // 重置统计
         this.state.completedCount = 0;
         this.state.correctCount = 0;
         this.state.wrongCount = 0;
 
-        // UI 状态
         this.elements.emptyState.classList.add('hidden');
         this.elements.searchContainer.classList.remove('hidden');
         this.elements.progressContainer.classList.remove('hidden');
@@ -159,17 +175,14 @@ const UI = {
 
     applyFilters() {
         const { allCards, searchQuery, filterType } = this.state;
-        
         let result = allCards;
 
-        // 1. 类型筛选
         if (filterType === 'wrong') {
             result = result.filter(c => c._status === 'wrong');
         } else if (filterType !== 'all') {
             result = result.filter(c => c.type === filterType);
         }
 
-        // 2. 文本搜索
         if (searchQuery) {
             const regex = new RegExp(searchQuery, 'i');
             result = result.filter(c => regex.test(c.question));
@@ -190,25 +203,21 @@ const UI = {
         }
 
         this.state.filteredCards.forEach((card, index) => {
-            // 查找该卡片在原始数组中的真实索引，用于唯一标识
             const realIndex = this.state.allCards.indexOf(card);
             const cardEl = this.createCardElement(card, realIndex);
             grid.appendChild(cardEl);
-            
-            // 简单入场动画
             setTimeout(() => cardEl.classList.remove('opacity-0', 'translate-y-4'), index * 50);
         });
     },
 
-    // --- 卡片创建与高亮 (Search Highlight & Timestamp Link) ---
-    
+    // --- 卡片创建 ---
     createCardElement(card, index) {
         const div = document.createElement('div');
         div.id = `card-${index}`;
         div.className = `relative bg-ctp-surface0 rounded-xl p-6 shadow-lg border-2 border-transparent transition-all duration-300 hover:shadow-xl flex flex-col gap-4 opacity-0 translate-y-4`;
-        div.dataset.timestamp = card.timestamp || -1; // 存储时间戳用于联动
+        div.dataset.timestamp = card.timestamp || -1; 
 
-        // 头部：类型标签 + 视频跳转按钮
+        // 头部
         const header = document.createElement('div');
         header.className = 'flex justify-between items-start mb-1';
         
@@ -229,7 +238,7 @@ const UI = {
         `;
         div.appendChild(header);
 
-        // 问题 (支持高亮)
+        // 问题
         const question = document.createElement('h3');
         question.className = 'text-lg font-semibold text-ctp-text leading-relaxed';
         question.innerHTML = this.highlightText(card.question);
@@ -245,14 +254,13 @@ const UI = {
         const feedbackArea = document.createElement('div');
         feedbackArea.className = `mt-4 p-4 rounded-lg text-sm transition-all duration-300 ${card._status === 'pending' ? 'hidden' : ''}`;
         
-        // 如果已答题，恢复状态
         if (card._status !== 'pending') {
             this.restoreCardState(contentArea, feedbackArea, card);
         }
 
         div.appendChild(feedbackArea);
 
-        // 按钮 (如果已答题则禁用)
+        // 按钮
         const actions = document.createElement('div');
         actions.className = 'mt-6 flex justify-end';
         const submitBtn = document.createElement('button');
@@ -267,22 +275,18 @@ const UI = {
         return div;
     },
 
-    // 辅助：高亮搜索词
     highlightText(text) {
         if (!this.state.searchQuery) return text;
         const regex = new RegExp(`(${this.state.searchQuery})`, 'gi');
         return text.replace(regex, '<span class="highlight">$1</span>');
     },
 
-    // 辅助：秒转 MM:SS
     formatTime(seconds) {
         const m = Math.floor(seconds / 60);
         const s = Math.floor(seconds % 60);
         return `${m}:${s.toString().padStart(2, '0')}`;
     },
 
-    // --- 视频联动逻辑 ---
-    
     jumpToVideo(time) {
         if (this.elements.previewPlayer) {
             this.elements.previewPlayer.currentTime = time;
@@ -291,26 +295,22 @@ const UI = {
     },
 
     highlightActiveCard(currentTime) {
-        // 简单的节流，避免每一帧都操作 DOM
         if (!this.lastHighlightCheck || Date.now() - this.lastHighlightCheck > 500) {
             this.lastHighlightCheck = Date.now();
             
-            // 找到最接近当前时间且不超过当前时间的卡片
             let activeId = -1;
             let minDiff = Infinity;
 
             this.state.filteredCards.forEach((card, idx) => {
                 if (card.timestamp !== undefined && card.timestamp <= currentTime) {
                     const diff = currentTime - card.timestamp;
-                    // 假设一个知识点有效期为 30秒
                     if (diff < 30 && diff < minDiff) {
                         minDiff = diff;
-                        activeId = idx; // 这里使用 filtered 里的 index 可能会有问题，应该用 unique ID
+                        activeId = idx;
                     }
                 }
             });
 
-            // 更新样式
             const cardEls = this.elements.cardsGrid.children;
             for (let i = 0; i < cardEls.length; i++) {
                 if (i === activeId) {
@@ -325,7 +325,6 @@ const UI = {
     },
 
     // --- 答题逻辑 ---
-
     handleCardSubmit(card, index, cardEl, contentArea, feedbackArea, submitBtn) {
         let isCorrect = false;
         let userAnswer = null;
@@ -343,27 +342,27 @@ const UI = {
             const input = contentArea.querySelector('input');
             userAnswer = input.value.trim();
             if (!userAnswer) {
-                // 如果输入为空，给个震动或颜色提示
                 input.classList.add('border-ctp-red');
                 setTimeout(() => input.classList.remove('border-ctp-red'), 500);
                 return;
             }
             
-            // ✅ 修复：增加安全校验，防止 old data 没有 correctAnswer 导致 crash
             const standardAnswer = card.correctAnswer ? card.correctAnswer.toString() : "";
             isCorrect = userAnswer.toLowerCase() === standardAnswer.toLowerCase();
         }
 
-        // 更新数据状态
         card._status = isCorrect ? 'correct' : 'wrong';
         card._userAnswer = userAnswer;
 
-        // 更新统计
         this.state.completedCount++;
-        if (isCorrect) this.state.correctCount++;
-        else this.state.wrongCount++;
+        if (isCorrect) {
+            this.state.correctCount++;
+            // ✅ 新增：答对时触发庆祝特效
+            this.showCelebration();
+        } else {
+            this.state.wrongCount++;
+        }
 
-        // 更新 UI
         this.restoreCardState(contentArea, feedbackArea, card);
         submitBtn.disabled = true;
         submitBtn.textContent = '已完成';
@@ -372,11 +371,9 @@ const UI = {
     },
 
     restoreCardState(contentArea, feedbackArea, card) {
-        // 禁用输入
         const inputs = contentArea.querySelectorAll('input');
         inputs.forEach(i => i.disabled = true);
 
-        // 显示反馈
         feedbackArea.classList.remove('hidden');
         if (card._status === 'correct') {
             feedbackArea.className = 'mt-4 p-4 rounded-lg text-sm bg-ctp-green/10 border border-ctp-green/20 text-ctp-green';
@@ -387,33 +384,132 @@ const UI = {
         }
     },
 
-    // --- 报告与导出 ---
+    // --- ✅ 新增：庆祝特效逻辑 ---
+    showCelebration() {
+        const overlay = this.elements.celebrationOverlay;
+        const modal = this.elements.celebrationModal;
+        const canvas = this.elements.fireworksCanvas;
 
+        if (!overlay || !modal || !canvas) return;
+
+        // 1. 显示层
+        overlay.classList.remove('hidden');
+        // 强制重绘以触发 transition
+        void modal.offsetWidth;
+        modal.classList.remove('scale-0');
+        modal.classList.add('scale-100');
+
+        // 2. 启动烟花
+        this.startFireworks(canvas);
+
+        // 3. 2.5秒后自动关闭
+        if (this.celebrationTimer) clearTimeout(this.celebrationTimer);
+        this.celebrationTimer = setTimeout(() => {
+            modal.classList.remove('scale-100');
+            modal.classList.add('scale-0');
+            
+            // 等动画播完再隐藏
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                this.stopFireworks();
+            }, 500);
+        }, 2500);
+    },
+
+    // --- 原生 JS 烟花系统 ---
+    startFireworks(canvas) {
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        const colors = ['#f5e0dc', '#f2cdcd', '#f5c2e7', '#cba6f7', '#f38ba8', '#fab387', '#f9e2af', '#a6e3a1', '#94e2d5', '#89dceb'];
+        
+        this.isFireworksRunning = true;
+
+        const createParticle = (x, y) => {
+            const count = 30; // 爆炸粒子数
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    radius: Math.random() * 3 + 1,
+                    velocity: {
+                        x: (Math.random() - 0.5) * 8,
+                        y: (Math.random() - 0.5) * 8
+                    },
+                    alpha: 1,
+                    decay: Math.random() * 0.02 + 0.01
+                });
+            }
+        };
+
+        // 随机产生爆炸点
+        const autoFire = setInterval(() => {
+            if (!this.isFireworksRunning) return clearInterval(autoFire);
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height * 0.6; // 上半部分
+            createParticle(x, y);
+        }, 300);
+
+        // 立即来一发
+        createParticle(canvas.width / 2, canvas.height / 2);
+
+        const animate = () => {
+            if (!this.isFireworksRunning) return;
+            requestAnimationFrame(animate);
+            
+            // 拖尾效果
+            ctx.fillStyle = 'rgba(30, 30, 46, 0.2)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach((p, index) => {
+                p.velocity.y += 0.05; // 重力
+                p.x += p.velocity.x;
+                p.y += p.velocity.y;
+                p.alpha -= p.decay;
+
+                if (p.alpha <= 0) {
+                    particles.splice(index, 1);
+                } else {
+                    ctx.save();
+                    ctx.globalAlpha = p.alpha;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
+                    ctx.restore();
+                }
+            });
+        };
+        
+        animate();
+    },
+
+    stopFireworks() {
+        this.isFireworksRunning = false;
+    },
+
+    // --- 报告与导出 ---
     showReport() {
         const { completedCount, correctCount, wrongCount } = this.state;
         const total = completedCount;
         const accuracy = total === 0 ? 0 : Math.round((correctCount / total) * 100);
 
-        // 更新 DOM
         document.getElementById('report-date').textContent = new Date().toLocaleDateString();
         document.getElementById('report-score').textContent = accuracy;
         document.getElementById('report-total').textContent = total;
         document.getElementById('report-accuracy').textContent = `${accuracy}%`;
         document.getElementById('report-wrong').textContent = wrongCount;
 
-        // 环形进度条动画
         const ring = document.getElementById('report-score-ring');
-        const circumference = 2 * Math.PI * 56; // r=56
+        const circumference = 2 * Math.PI * 56;
         const offset = circumference - (accuracy / 100) * circumference;
         ring.style.strokeDashoffset = offset;
         
-        // 颜色根据分数变化
         ring.classList.remove('text-ctp-green', 'text-ctp-yellow', 'text-ctp-red');
         if (accuracy >= 80) ring.classList.add('text-ctp-green');
         else if (accuracy >= 60) ring.classList.add('text-ctp-yellow');
         else ring.classList.add('text-ctp-red');
 
-        // 显示模态框
         const modal = this.elements.reportModal;
         modal.classList.remove('pointer-events-none', 'opacity-0');
         modal.firstElementChild.classList.remove('scale-95');
@@ -436,8 +532,8 @@ const UI = {
         try {
             const element = this.elements.reportContent;
             const canvas = await html2canvas(element, {
-                backgroundColor: '#1e1e2e', // ctp-base
-                scale: 2 // 高清
+                backgroundColor: '#1e1e2e',
+                scale: 2
             });
 
             const link = document.createElement('a');
@@ -454,9 +550,8 @@ const UI = {
     },
 
     // --- 其他辅助 ---
-
     updateProgressUI() {
-        const total = this.state.allCards.length; // 进度通常基于总数
+        const total = this.state.allCards.length;
         const completed = this.state.completedCount;
         const percentage = total === 0 ? 0 : (completed / total) * 100;
         this.elements.progressBar.style.width = `${percentage}%`;
@@ -474,11 +569,9 @@ const UI = {
     },
 
     renderCards(cards) {
-        // 接管来自 app.js 的调用
         this.setCardsData(cards);
     },
     
-    // UI Helpers (togglePanel etc 保持原样或微调)
     togglePanel() {
         this.state.isPanelCollapsed = !this.state.isPanelCollapsed;
         const panel = this.elements.leftPanel;
@@ -568,15 +661,12 @@ const UI = {
     },
     renderCardContent(container, card, index) {
         if (card.type === 'choice' || card.type === 'boolean') {
-            // ✅ 修复：处理 options 为空数组 [] 的情况
             let options = card.options;
-            // 如果 options 不存在，或者长度为 0
             if (!options || options.length === 0) {
                 if (card.type === 'boolean') {
-                    // 强制给判断题加上默认选项
                     options = ['正确', '错误']; 
                 } else {
-                    options = []; // 选择题如果没有选项则为空
+                    options = [];
                 }
             }
 
@@ -586,7 +676,7 @@ const UI = {
                 
                 const input = document.createElement('input');
                 input.type = 'radio';
-                input.name = `card-${index}`; // 保证每道题的单选互斥
+                input.name = `card-${index}`;
                 input.value = i;
                 input.className = 'form-radio text-ctp-blue focus:ring-ctp-blue bg-ctp-base border-ctp-overlay0';
                 
@@ -604,7 +694,6 @@ const UI = {
             input.className = 'w-full bg-ctp-base border border-ctp-surface1 rounded-lg p-3 text-ctp-text focus:border-ctp-blue focus:ring-1 focus:ring-ctp-blue outline-none';
             input.placeholder = '请输入答案...';
             
-            // 保留之前的回车提交功能
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     const submitBtn = container.parentElement.querySelector('button');

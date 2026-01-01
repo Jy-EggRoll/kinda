@@ -255,6 +255,12 @@
         </div>
     </div>
 
+    <div id="celebration-overlay" class="fixed inset-0 z-[100] hidden flex items-center justify-center pointer-events-none">
+        <canvas id="fireworks-canvas" class="absolute inset-0 w-full h-full"></canvas>
+        <div id="celebration-modal" class="relative z-10 transform scale-0 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)">
+            <img src="assets/good.jpg" class="max-w-[300px] md:max-w-[500px] rounded-2xl shadow-2xl border-4 border-ctp-yellow rotate-3">
+        </div>
+    </div>
     <script src="js/ui.js"></script>
     <script src="js/ai.js"></script>
     <script src="js/app.js"></script>
