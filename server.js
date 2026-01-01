@@ -158,21 +158,21 @@ async function processVideoTask(taskId, videoPath) {
 
         // 修改 System Prompt，强制要求 JSON 包含 timestamp
         const systemPrompt = `
-You are an educational AI assistant. Analyze the provided video frames and generate learning cards.
-Strictly return ONLY valid JSON array. No markdown.
-Schema: [
-  {
-    "type": "choice"|"boolean"|"fill", 
-    "question": "...", 
-    "options": ["A","B"], 
-    "correctIndex": 0, 
-    "explanation": "...",
-    "timestamp": 120 
-  }
-]
-Note: "timestamp" is the time in seconds (integer) where this knowledge point appears in the video. Use the provided screenshot times as reference.
+        You are an educational AI assistant. Analyze the provided video frames and generate learning cards.
+        Strictly return ONLY valid JSON array. No markdown.
+        Schema: [
+          {
+            "type": "choice"|"boolean"|"fill", 
+            "question": "...", 
+            "options": ["A","B"] (Required for choice), 
+            "correctIndex": 0 (Required for choice/boolean), 
+            "correctAnswer": "text_answer" (Required for fill), 
+            "explanation": "...",
+            "timestamp": 120 
+          }
+        ]
+        Note: "timestamp" is the time in seconds (integer) where this knowledge point appears.
         `;
-
         const completion = await client.chat.completions.create({
             model: apiConfig.model,
             messages: [
@@ -234,7 +234,7 @@ app.post('/api/generate', async (req, res) => {
         const completion = await client.chat.completions.create({
             model: apiConfig.model,
             messages: [
-                { role: "system", content: `You are a helper. Generate valid JSON array for learning cards based on text. Schema: [{"type": "choice"|"boolean"|"fill", "question": "...", "options": ["..."], "correctIndex": 0, "explanation": "..."}]` },
+                { role: "system", content: `You are a helper. Generate valid JSON array for learning cards. Schema: [{"type": "choice"|"boolean"|"fill", "question": "...", "options": ["..."], "correctIndex": 0, "correctAnswer": "text", "explanation": "..."}]` },
                 { role: "user", content: req.body.text || '' }
             ]
         });

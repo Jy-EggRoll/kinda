@@ -342,8 +342,16 @@ const UI = {
         } else if (card.type === 'fill') {
             const input = contentArea.querySelector('input');
             userAnswer = input.value.trim();
-            if (!userAnswer) return;
-            isCorrect = userAnswer.toLowerCase() === card.correctAnswer.toLowerCase(); // 简单匹配
+            if (!userAnswer) {
+                // 如果输入为空，给个震动或颜色提示
+                input.classList.add('border-ctp-red');
+                setTimeout(() => input.classList.remove('border-ctp-red'), 500);
+                return;
+            }
+            
+            // ✅ 修复：增加安全校验，防止 old data 没有 correctAnswer 导致 crash
+            const standardAnswer = card.correctAnswer ? card.correctAnswer.toString() : "";
+            isCorrect = userAnswer.toLowerCase() === standardAnswer.toLowerCase();
         }
 
         // 更新数据状态
@@ -560,13 +568,25 @@ const UI = {
     },
     renderCardContent(container, card, index) {
         if (card.type === 'choice' || card.type === 'boolean') {
-            const options = card.options || (card.type === 'boolean' ? ['正确', '错误'] : []);
+            // ✅ 修复：处理 options 为空数组 [] 的情况
+            let options = card.options;
+            // 如果 options 不存在，或者长度为 0
+            if (!options || options.length === 0) {
+                if (card.type === 'boolean') {
+                    // 强制给判断题加上默认选项
+                    options = ['正确', '错误']; 
+                } else {
+                    options = []; // 选择题如果没有选项则为空
+                }
+            }
+
             options.forEach((opt, i) => {
                 const label = document.createElement('label');
                 label.className = 'flex items-center p-3 rounded-lg border border-ctp-surface1 hover:bg-ctp-surface1/50 cursor-pointer transition-colors group';
+                
                 const input = document.createElement('input');
                 input.type = 'radio';
-                input.name = `card-${index}`; // 注意：这里的index需要唯一
+                input.name = `card-${index}`; // 保证每道题的单选互斥
                 input.value = i;
                 input.className = 'form-radio text-ctp-blue focus:ring-ctp-blue bg-ctp-base border-ctp-overlay0';
                 
@@ -583,6 +603,15 @@ const UI = {
             input.type = 'text';
             input.className = 'w-full bg-ctp-base border border-ctp-surface1 rounded-lg p-3 text-ctp-text focus:border-ctp-blue focus:ring-1 focus:ring-ctp-blue outline-none';
             input.placeholder = '请输入答案...';
+            
+            // 保留之前的回车提交功能
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const submitBtn = container.parentElement.querySelector('button');
+                    if (submitBtn && !submitBtn.disabled) submitBtn.click();
+                }
+            });
+
             container.appendChild(input);
         }
     },
