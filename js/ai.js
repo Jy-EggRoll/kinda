@@ -1,10 +1,10 @@
 const AI = {
     // 文本生成 (保持不变)
-    async generateCards(text) {
+    async generateCards(text, count = 5) {
         const response = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text })
+            body: JSON.stringify({ text, count })
         });
         if (!response.ok) {
             const err = await response.json();
@@ -14,15 +14,16 @@ const AI = {
     },
 
     // 新增：视频生成 (返回 Task ID)
-    async uploadVideo(file) {
+    async uploadVideo(file, count = 5) {
         const formData = new FormData();
         formData.append('video', file);
+        formData.append('count', count);
 
         const response = await fetch('/api/upload-video', {
             method: 'POST',
             body: formData
         });
-        
+
         if (!response.ok) throw new Error('Upload Failed');
         return response.json(); // returns { taskId }
     },

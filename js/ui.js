@@ -23,6 +23,7 @@ const UI = {
         // --- 输入与生成 ---
         generateBtn: document.getElementById('generate-btn'),
         sourceText: document.getElementById('source-text'),
+        questionCount: document.getElementById('question-count'),
 
         // --- 右侧展示区 ---
         cardsGrid: document.getElementById('cards-grid'),

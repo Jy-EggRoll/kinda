@@ -52,15 +52,19 @@
     <style>
         /* 简单的搜索高亮样式 */
         .highlight {
-            background-color: #f9e2af; /* ctp-yellow */
-            color: #1e1e2e; /* ctp-base */
+            background-color: #f9e2af;
+            /* ctp-yellow */
+            color: #1e1e2e;
+            /* ctp-base */
             border-radius: 2px;
             padding: 0 2px;
         }
+
         /* 隐藏滚动条但保留功能 */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
+
         .no-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
@@ -75,19 +79,23 @@
         <div class="p-4 border-b border-ctp-surface0 flex justify-between items-center">
             <h1 class="text-xl font-bold text-ctp-mauve truncate panel-content">学习助手</h1>
             <button id="toggle-panel-btn"
-                class="text-ctp-overlay1 hover:text-ctp-text transition-colors p-1 rounded hover:bg-ctp-surface0">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                class="text-ctp-overlay1 hover:text-ctp-text transition-colors p-1 rounded hover:bg-ctp-surface0 panel-content">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                 </svg>
             </button>
         </div>
 
         <div class="flex-1 p-4 flex flex-col overflow-hidden panel-content transition-opacity duration-200">
             <div class="flex p-1 bg-ctp-surface0 rounded-lg mb-4">
-                <button id="tab-text" class="flex-1 py-2 text-sm font-bold rounded-md bg-ctp-blue text-ctp-base shadow-sm transition-all">
+                <button id="tab-text"
+                    class="flex-1 py-2 text-sm font-bold rounded-md bg-ctp-blue text-ctp-base shadow-sm transition-all">
                     文本输入
                 </button>
-                <button id="tab-video" class="flex-1 py-2 text-sm font-medium rounded-md text-ctp-subtext0 hover:text-ctp-text transition-all">
+                <button id="tab-video"
+                    class="flex-1 py-2 text-sm font-medium rounded-md text-ctp-subtext0 hover:text-ctp-text transition-all">
                     视频解析
                 </button>
             </div>
@@ -99,22 +107,32 @@
                         placeholder="在此粘贴文本，AI 将为您生成学习卡片..."></textarea>
                 </div>
 
-                <div id="panel-video" class="absolute inset-0 flex flex-col translate-x-full transition-transform duration-300">
-                    <div id="drop-zone" class="flex-1 border-2 border-dashed border-ctp-surface1 rounded-lg flex flex-col items-center justify-center hover:border-ctp-blue hover:bg-ctp-surface0/50 transition-all cursor-pointer relative group">
-                        <input type="file" id="video-input" accept="video/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                <div id="panel-video"
+                    class="absolute inset-0 flex flex-col translate-x-full transition-transform duration-300">
+                    <div id="drop-zone"
+                        class="flex-1 border-2 border-dashed border-ctp-surface1 rounded-lg flex flex-col items-center justify-center hover:border-ctp-blue hover:bg-ctp-surface0/50 transition-all cursor-pointer relative group">
+                        <input type="file" id="video-input" accept="video/*"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                         <div class="text-ctp-blue mb-2 group-hover:scale-110 transition-transform">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                             </svg>
                         </div>
                         <p class="text-sm text-ctp-text font-medium">点击或拖拽上传视频</p>
                         <p class="text-xs text-ctp-overlay0 mt-1">支持 MP4, MOV</p>
                     </div>
-                    <div id="video-preview" class="hidden mt-4 h-40 bg-ctp-crust rounded-lg overflow-hidden relative border border-ctp-surface1">
+                    <div id="video-preview"
+                        class="hidden mt-4 h-40 bg-ctp-crust rounded-lg overflow-hidden relative border border-ctp-surface1">
                         <video id="preview-player" class="w-full h-full object-contain" controls></video>
-                        <button id="clear-video" class="absolute top-2 right-2 bg-ctp-red text-ctp-base rounded-full p-1 shadow hover:bg-ctp-maroon">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        <button id="clear-video"
+                            class="absolute top-2 right-2 bg-ctp-red text-ctp-base rounded-full p-1 shadow hover:bg-ctp-maroon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                    clip-rule="evenodd" />
                             </svg>
                         </button>
                     </div>
@@ -122,6 +140,13 @@
             </div>
 
             <div class="mt-4">
+                <div class="mb-3 flex items-center gap-2 bg-ctp-surface0 p-2 rounded-lg border border-ctp-surface1">
+                    <label for="question-count"
+                        class="text-sm font-medium text-ctp-subtext0 whitespace-nowrap">题目数量:</label>
+                    <input type="number" id="question-count" min="1" max="20" value="5"
+                        class="w-full bg-transparent text-ctp-text font-bold focus:outline-none text-right"
+                        oninput="if(value>20)value=20;if(value<1)value=1">
+                </div>
                 <button id="generate-btn"
                     class="w-full bg-ctp-blue hover:bg-ctp-sapphire text-ctp-base font-bold py-3 px-4 rounded-lg transition-all transform active:scale-95 flex justify-center items-center gap-2 shadow-lg shadow-ctp-blue/20">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
@@ -133,12 +158,20 @@
                 </button>
             </div>
         </div>
-        
-        <div class="hidden collapsed-content absolute inset-0 flex-col items-center pt-4 transition-opacity duration-200 opacity-0">
-             <button id="expand-panel-btn" class="mb-4 text-ctp-blue hover:text-ctp-sky p-2 rounded-full hover:bg-ctp-surface0 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+
+        <div
+            class="hidden collapsed-content absolute inset-0 flex-col items-center pt-4 transition-opacity duration-200 opacity-0">
+            <button id="expand-panel-btn"
+                class="mb-4 text-ctp-blue hover:text-ctp-sky p-2 rounded-full hover:bg-ctp-surface0 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
             </button>
-            <div class="-rotate-90 origin-center whitespace-nowrap text-ctp-overlay1 font-bold tracking-widest select-none">学习助手</div>
+            <div
+                class="-rotate-90 origin-center whitespace-nowrap text-ctp-overlay1 font-bold tracking-widest select-none">
+                学习助手</div>
         </div>
     </aside>
 
@@ -159,11 +192,17 @@
                 <div id="search-container" class="hidden flex-1 max-w-lg flex items-center gap-2">
                     <div class="relative flex-1">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-ctp-overlay0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
                         </span>
-                        <input type="text" id="search-input" placeholder="搜索知识点..." class="w-full bg-ctp-surface0 border border-ctp-surface1 rounded-full py-1.5 pl-9 pr-4 text-sm text-ctp-text focus:outline-none focus:border-ctp-blue focus:ring-1 focus:ring-ctp-blue transition-all">
+                        <input type="text" id="search-input" placeholder="搜索知识点..."
+                            class="w-full bg-ctp-surface0 border border-ctp-surface1 rounded-full py-1.5 pl-9 pr-4 text-sm text-ctp-text focus:outline-none focus:border-ctp-blue focus:ring-1 focus:ring-ctp-blue transition-all">
                     </div>
-                    <select id="filter-select" class="bg-ctp-surface0 border border-ctp-surface1 rounded-lg py-1.5 px-3 text-sm text-ctp-text focus:outline-none focus:border-ctp-blue">
+                    <select id="filter-select"
+                        class="bg-ctp-surface0 border border-ctp-surface1 rounded-lg py-1.5 px-3 text-sm text-ctp-text focus:outline-none focus:border-ctp-blue">
                         <option value="all">全部题目</option>
                         <option value="wrong">只看错题</option>
                         <option value="choice">选择题</option>
@@ -173,13 +212,19 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button id="report-btn" class="hidden bg-ctp-peach/10 text-ctp-peach hover:bg-ctp-peach/20 border border-ctp-peach/20 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <button id="report-btn"
+                    class="hidden bg-ctp-peach/10 text-ctp-peach hover:bg-ctp-peach/20 border border-ctp-peach/20 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
                     生成报告
                 </button>
                 <div class="flex items-center gap-2">
                     <span id="status-indicator" class="flex h-3 w-3 relative">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-ctp-green opacity-75 hidden"></span>
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-ctp-green opacity-75 hidden"></span>
                         <span class="relative inline-flex rounded-full h-3 w-3 bg-ctp-surface2"></span>
                     </span>
                     <span id="status-text" class="text-sm text-ctp-overlay0 hidden md:inline">就绪</span>
@@ -202,22 +247,27 @@
             </div>
 
             <div id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-7xl mx-auto pb-20">
-                </div>
+            </div>
         </div>
     </main>
 
-    <div id="report-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
-        <div class="bg-ctp-base border border-ctp-surface1 rounded-2xl p-8 max-w-md w-full shadow-2xl transform scale-95 transition-transform duration-300 relative overflow-hidden">
+    <div id="report-modal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+        <div
+            class="bg-ctp-base border border-ctp-surface1 rounded-2xl p-8 max-w-md w-full shadow-2xl transform scale-95 transition-transform duration-300 relative overflow-hidden">
             <div id="report-content" class="bg-ctp-base p-4 rounded-xl border border-ctp-surface0">
                 <div class="text-center mb-6">
                     <h3 class="text-2xl font-bold text-ctp-mauve mb-1">学习成就报告</h3>
                     <p class="text-sm text-ctp-subtext0" id="report-date">2026/01/01</p>
                 </div>
-                
+
                 <div class="flex justify-center mb-8 relative">
                     <svg class="w-32 h-32 transform -rotate-90">
-                        <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="12" fill="transparent" class="text-ctp-surface0" />
-                        <circle id="report-score-ring" cx="64" cy="64" r="56" stroke="currentColor" stroke-width="12" fill="transparent" stroke-dasharray="351.86" stroke-dashoffset="0" class="text-ctp-green transition-all duration-1000" />
+                        <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="12" fill="transparent"
+                            class="text-ctp-surface0" />
+                        <circle id="report-score-ring" cx="64" cy="64" r="56" stroke="currentColor" stroke-width="12"
+                            fill="transparent" stroke-dasharray="351.86" stroke-dashoffset="0"
+                            class="text-ctp-green transition-all duration-1000" />
                     </svg>
                     <div class="absolute inset-0 flex flex-col items-center justify-center">
                         <span id="report-score" class="text-3xl font-bold text-ctp-text">0</span>
@@ -246,19 +296,28 @@
             </div>
 
             <div class="mt-6 flex gap-3">
-                <button id="close-report" class="flex-1 py-2 text-ctp-overlay1 hover:text-ctp-text font-medium transition-colors">关闭</button>
-                <button id="download-report" class="flex-1 py-2 bg-ctp-blue hover:bg-ctp-sapphire text-ctp-base font-bold rounded-lg transition-colors flex justify-center items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <button id="close-report"
+                    class="flex-1 py-2 text-ctp-overlay1 hover:text-ctp-text font-medium transition-colors">关闭</button>
+                <button id="download-report"
+                    class="flex-1 py-2 bg-ctp-blue hover:bg-ctp-sapphire text-ctp-base font-bold rounded-lg transition-colors flex justify-center items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
                     保存图片
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="celebration-overlay" class="fixed inset-0 z-[100] hidden flex items-center justify-center pointer-events-none">
+    <div id="celebration-overlay"
+        class="fixed inset-0 z-[100] hidden flex items-center justify-center pointer-events-none">
         <canvas id="fireworks-canvas" class="absolute inset-0 w-full h-full"></canvas>
-        <div id="celebration-modal" class="relative z-10 transform scale-0 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)">
-            <img src="assets/good.jpg" class="max-w-[300px] md:max-w-[500px] rounded-2xl shadow-2xl border-4 border-ctp-yellow rotate-3">
+        <div id="celebration-modal"
+            class="relative z-10 transform scale-0 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)">
+            <img src="assets/good.jpg"
+                class="max-w-[300px] md:max-w-[500px] rounded-2xl shadow-2xl border-4 border-ctp-yellow rotate-3">
         </div>
     </div>
     <script src="js/ui.js"></script>

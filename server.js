@@ -34,7 +34,7 @@ function loadApiConfig() {
     const config = {
         key: process.env.API_KEY || '',
         baseUrl: 'https://www.sophnet.com/api/open-apis/v1',
-        model: 'Qwen2.5-VL-72B-Instruct', 
+        model: 'Qwen2.5-VL-72B-Instruct',
     };
 
     if (fs.existsSync(apiPath)) {
@@ -43,7 +43,7 @@ function loadApiConfig() {
             const keyMatch = raw.match(/apikey\s*[:=]\s*(\S+)/i);
             const baseMatch = raw.match(/base[_-]?url\s*[:=]\s*["\']?([^"'\s,]+)["\']?/i);
             const modelMatch = raw.match(/model\s*[:=]\s*["\']?([^"'\s,]+)["\']?/i);
-            
+
             if (keyMatch) config.key = keyMatch[1].trim();
             if (baseMatch) config.baseUrl = baseMatch[1].trim();
             if (modelMatch) config.model = modelMatch[1].trim();
@@ -68,24 +68,24 @@ const extractFrames = (videoPath, outputDir, count = 4) => {
     return new Promise((resolve, reject) => {
         ffmpeg.ffprobe(videoPath, (err, metadata) => {
             if (err) return reject(err);
-            
+
             const duration = metadata.format.duration;
             const interval = duration / (count + 1);
             // 记录每一帧的具体时间点
-            const frameData = Array.from({length: count}, (_, i) => {
+            const frameData = Array.from({ length: count }, (_, i) => {
                 return {
                     time: (i + 1) * interval,
                     index: i
                 };
             });
-            
+
             const results = [];
             let completed = 0;
-            
+
             frameData.forEach((item) => {
                 const filename = `frame_${path.basename(videoPath)}_${item.index}.jpg`;
                 const outputPath = path.join(outputDir, filename);
-                
+
                 ffmpeg(videoPath)
                     .screenshots({
                         timestamps: [item.time],
@@ -120,14 +120,14 @@ const fileToBase64 = (filePath) => {
 };
 
 // --- 4. 核心流程：视觉分析 ---
-async function processVideoTask(taskId, videoPath) {
+async function processVideoTask(taskId, videoPath, count = 5) {
     const task = tasks[taskId];
     const framePaths = [];
 
     try {
         task.message = '正在分析视频画面 (截取关键帧)...';
         console.log(`开始处理视频: ${videoPath}`);
-        
+
         // 获取带时间戳的帧
         const frames = await extractFrames(videoPath, 'uploads/', 4);
         // 保存路径以便后续清理
@@ -135,9 +135,9 @@ async function processVideoTask(taskId, videoPath) {
         task.progress = 40;
 
         task.message = `AI 正在观看视频 (${apiConfig.model})...`;
-        
+
         // 构建提示词，明确指出每张图的时间点
-        let promptText = "这是视频课程的 4 张关键截图。请根据截图提取核心知识点，并生成 3-5 道互动练习题。";
+        let promptText = `这是视频课程的 4 张关键截图。请根据截图提取核心知识点，并生成 ${count} 道互动练习题。`;
         promptText += "\n重要：请根据知识点出现的画面时间，将每道题关联到最接近的时间戳 (timestamp)。";
 
         const content = [{ type: "text", text: promptText }];
@@ -184,10 +184,10 @@ async function processVideoTask(taskId, videoPath) {
 
         task.progress = 80;
         task.message = '正在生成卡片...';
-        
+
         const responseContent = completion.choices[0].message.content;
         const clean = responseContent.replace(/```json/gi, '').replace(/```/g, '').trim();
-        
+
         let cards;
         try {
             cards = JSON.parse(clean);
@@ -217,9 +217,10 @@ async function processVideoTask(taskId, videoPath) {
 app.post('/api/upload-video', upload.single('video'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: "No video file" });
     const taskId = uuidv4();
+    const count = req.body.count || 5;
     tasks[taskId] = { status: 'processing', progress: 0, message: 'Starting...', startTime: Date.now() };
     res.json({ taskId });
-    processVideoTask(taskId, req.file.path);
+    processVideoTask(taskId, req.file.path, count);
 });
 
 app.get('/api/task/:id', (req, res) => {
@@ -231,17 +232,18 @@ app.get('/api/task/:id', (req, res) => {
 app.post('/api/generate', async (req, res) => {
     // 文本生成保持简单逻辑，通常不带时间戳
     try {
+        const count = req.body.count || 5;
         const completion = await client.chat.completions.create({
             model: apiConfig.model,
             messages: [
-                { role: "system", content: `You are a helper. Generate valid JSON array for learning cards. Schema: [{"type": "choice"|"boolean"|"fill", "question": "...", "options": ["..."], "correctIndex": 0, "correctAnswer": "text", "explanation": "..."}]` },
+                { role: "system", content: `You are a helper. Generate valid JSON array for learning cards. Generate ${count} questions. Schema: [{"type": "choice"|"boolean"|"fill", "question": "...", "options": ["..."], "correctIndex": 0, "correctAnswer": "text", "explanation": "..."}]` },
                 { role: "user", content: req.body.text || '' }
             ]
         });
         const clean = completion.choices[0].message.content.replace(/```json/gi, '').replace(/```/g, '').trim();
-        res.json(JSON.parse(clean)); 
+        res.json(JSON.parse(clean));
     } catch (e) {
-        res.status(500).json({error: e.message});
+        res.status(500).json({ error: e.message });
     }
 });
 

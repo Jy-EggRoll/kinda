@@ -4,22 +4,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. 注册文本生成回调
     UI.callbacks.onGenerateText = async (text) => {
-        runGeneration(async () => await AI.generateCards(text));
+        const count = parseInt(UI.elements.questionCount.value) || 5;
+        runGeneration(async () => await AI.generateCards(text, count));
     };
 
     // 3. 注册视频生成回调 (含轮询逻辑)
     UI.callbacks.onGenerateVideo = async (file) => {
+        const count = parseInt(UI.elements.questionCount.value) || 5;
         runGeneration(async () => {
             // A. 上传视频
             UI.updateStatus("正在上传视频...");
-            const { taskId } = await AI.uploadVideo(file);
-            
+            const { taskId } = await AI.uploadVideo(file, count);
+
             // B. 轮询任务状态
             return new Promise((resolve, reject) => {
                 const poll = setInterval(async () => {
                     try {
                         const task = await AI.checkTaskStatus(taskId);
-                        
+
                         if (task.status === 'completed') {
                             clearInterval(poll);
                             resolve(task.result); // 成功拿到题目
@@ -44,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             UI.setLoading(true);
             UI.clearCards();
-            
+
             // 执行传入的生成函数 (文本或视频)
             const cards = await actionFn();
 
