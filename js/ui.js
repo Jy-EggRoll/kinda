@@ -6,28 +6,28 @@ const UI = {
         expandBtn: document.getElementById('expand-panel-btn'),
         panelContent: document.querySelectorAll('.panel-content'),
         collapsedContent: document.querySelector('.collapsed-content'),
-        
+
         // --- Tab 与面板 ---
         tabText: document.getElementById('tab-text'),
         tabVideo: document.getElementById('tab-video'),
         panelText: document.getElementById('panel-text'),
         panelVideo: document.getElementById('panel-video'),
-        
+
         // --- 视频相关 ---
         videoInput: document.getElementById('video-input'),
         dropZone: document.getElementById('drop-zone'),
         videoPreview: document.getElementById('video-preview'),
         previewPlayer: document.getElementById('preview-player'),
         clearVideoBtn: document.getElementById('clear-video'),
-        
+
         // --- 输入与生成 ---
         generateBtn: document.getElementById('generate-btn'),
         sourceText: document.getElementById('source-text'),
-        
+
         // --- 右侧展示区 ---
         cardsGrid: document.getElementById('cards-grid'),
         emptyState: document.getElementById('empty-state'),
-        
+
         // --- 状态栏与工具 ---
         progressBar: document.getElementById('progress-bar'),
         progressText: document.getElementById('progress-text'),
@@ -35,12 +35,12 @@ const UI = {
         statusIndicator: document.querySelector('#status-indicator span.animate-ping'),
         statusDot: document.querySelector('#status-indicator span.relative'),
         statusText: document.getElementById('status-text'),
-        
+
         // --- 搜索与筛选 ---
         searchContainer: document.getElementById('search-container'),
         searchInput: document.getElementById('search-input'),
         filterSelect: document.getElementById('filter-select'),
-        
+
         // --- 报告 ---
         reportBtn: document.getElementById('report-btn'),
         reportModal: document.getElementById('report-modal'),
@@ -58,15 +58,15 @@ const UI = {
         mode: 'text',
         selectedFile: null,
         isPanelCollapsed: false,
-        
+
         // 数据状态
-        allCards: [], 
+        allCards: [],
         filteredCards: [],
-        
+
         // 筛选状态
         searchQuery: '',
         filterType: 'all',
-        
+
         // 统计状态
         completedCount: 0,
         correctCount: 0,
@@ -85,7 +85,7 @@ const UI = {
         this.bindEvents();
         this.checkResponsive();
         this.resizeCanvas(); // 初始化画布大小
-        
+
         window.addEventListener('resize', () => {
             this.checkResponsive();
             this.resizeCanvas(); // ✅ 窗口调整时重置画布
@@ -158,9 +158,9 @@ const UI = {
     setCardsData(cardsData) {
         this.state.allCards = Array.isArray(cardsData) ? cardsData.filter(c => this.isSupportedCard(c.type)) : [];
         this.state.allCards.forEach(card => {
-            card._status = 'pending'; 
+            card._status = 'pending';
         });
-        
+
         this.state.completedCount = 0;
         this.state.correctCount = 0;
         this.state.wrongCount = 0;
@@ -196,7 +196,7 @@ const UI = {
     renderFilteredCards() {
         const grid = this.elements.cardsGrid;
         grid.innerHTML = '';
-        
+
         if (this.state.filteredCards.length === 0) {
             grid.innerHTML = `<div class="col-span-full text-center text-ctp-overlay1 py-10">没有找到匹配的题目</div>`;
             return;
@@ -215,12 +215,12 @@ const UI = {
         const div = document.createElement('div');
         div.id = `card-${index}`;
         div.className = `relative bg-ctp-surface0 rounded-xl p-6 shadow-lg border-2 border-transparent transition-all duration-300 hover:shadow-xl flex flex-col gap-4 opacity-0 translate-y-4`;
-        div.dataset.timestamp = card.timestamp || -1; 
+        div.dataset.timestamp = card.timestamp || -1;
 
         // 头部
         const header = document.createElement('div');
         header.className = 'flex justify-between items-start mb-1';
-        
+
         let jumpBtnHtml = '';
         if (card.timestamp !== undefined && this.state.mode === 'video') {
             jumpBtnHtml = `
@@ -253,7 +253,7 @@ const UI = {
         // 反馈区
         const feedbackArea = document.createElement('div');
         feedbackArea.className = `mt-4 p-4 rounded-lg text-sm transition-all duration-300 ${card._status === 'pending' ? 'hidden' : ''}`;
-        
+
         if (card._status !== 'pending') {
             this.restoreCardState(contentArea, feedbackArea, card);
         }
@@ -267,7 +267,7 @@ const UI = {
         submitBtn.className = 'bg-ctp-mauve hover:bg-ctp-pink text-ctp-base font-bold py-2 px-6 rounded-lg transition-colors shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed';
         submitBtn.textContent = card._status === 'pending' ? '提交' : '已完成';
         submitBtn.disabled = card._status !== 'pending';
-        
+
         submitBtn.onclick = () => this.handleCardSubmit(card, index, div, contentArea, feedbackArea, submitBtn);
         actions.appendChild(submitBtn);
         div.appendChild(actions);
@@ -297,7 +297,7 @@ const UI = {
     highlightActiveCard(currentTime) {
         if (!this.lastHighlightCheck || Date.now() - this.lastHighlightCheck > 500) {
             this.lastHighlightCheck = Date.now();
-            
+
             let activeId = -1;
             let minDiff = Infinity;
 
@@ -346,7 +346,7 @@ const UI = {
                 setTimeout(() => input.classList.remove('border-ctp-red'), 500);
                 return;
             }
-            
+
             const standardAnswer = card.correctAnswer ? card.correctAnswer.toString() : "";
             isCorrect = userAnswer.toLowerCase() === standardAnswer.toLowerCase();
         }
@@ -368,7 +368,7 @@ const UI = {
         this.restoreCardState(contentArea, feedbackArea, card);
         submitBtn.disabled = true;
         submitBtn.textContent = '已完成';
-        
+
         this.updateProgressUI();
     },
 
@@ -414,7 +414,7 @@ const UI = {
         this.celebrationTimer = setTimeout(() => {
             modal.classList.remove('scale-100');
             modal.classList.add('scale-0');
-            
+
             // 等动画播完再隐藏
             setTimeout(() => {
                 overlay.classList.add('hidden');
@@ -428,7 +428,7 @@ const UI = {
         const ctx = canvas.getContext('2d');
         let particles = [];
         const colors = ['#f5e0dc', '#f2cdcd', '#f5c2e7', '#cba6f7', '#f38ba8', '#fab387', '#f9e2af', '#a6e3a1', '#94e2d5', '#89dceb'];
-        
+
         this.isFireworksRunning = true;
 
         const createParticle = (x, y) => {
@@ -463,9 +463,9 @@ const UI = {
         const animate = () => {
             if (!this.isFireworksRunning) return;
             requestAnimationFrame(animate);
-            
+
             // 拖尾效果
-            ctx.fillStyle = 'rgba(30, 30, 46, 0.2)'; 
+            ctx.fillStyle = 'rgba(30, 30, 46, 0.2)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             particles.forEach((p, index) => {
@@ -487,7 +487,7 @@ const UI = {
                 }
             });
         };
-        
+
         animate();
     },
 
@@ -511,7 +511,7 @@ const UI = {
         const circumference = 2 * Math.PI * 56;
         const offset = circumference - (accuracy / 100) * circumference;
         ring.style.strokeDashoffset = offset;
-        
+
         ring.classList.remove('text-ctp-green', 'text-ctp-yellow', 'text-ctp-red');
         if (accuracy >= 80) ring.classList.add('text-ctp-green');
         else if (accuracy >= 60) ring.classList.add('text-ctp-yellow');
@@ -544,7 +544,7 @@ const UI = {
             });
 
             const link = document.createElement('a');
-            link.download = `学习报告_${new Date().toISOString().slice(0,10)}.png`;
+            link.download = `学习报告_${new Date().toISOString().slice(0, 10)}.png`;
             link.href = canvas.toDataURL();
             link.click();
         } catch (e) {
@@ -578,7 +578,7 @@ const UI = {
     renderCards(cards) {
         this.setCardsData(cards);
     },
-    
+
     togglePanel() {
         this.state.isPanelCollapsed = !this.state.isPanelCollapsed;
         const panel = this.elements.leftPanel;
@@ -630,7 +630,7 @@ const UI = {
     },
     clearVideo() {
         this.state.selectedFile = null;
-        if(this.elements.videoInput) this.elements.videoInput.value = '';
+        if (this.elements.videoInput) this.elements.videoInput.value = '';
         this.elements.dropZone.classList.remove('hidden');
         this.elements.videoPreview.classList.add('hidden');
         this.elements.previewPlayer.src = '';
@@ -641,7 +641,7 @@ const UI = {
         }
     },
     updateStatus(message) {
-        if(this.elements.statusText) this.elements.statusText.textContent = message;
+        if (this.elements.statusText) this.elements.statusText.textContent = message;
     },
     setLoading(isLoading) {
         const btn = this.elements.generateBtn;
@@ -671,7 +671,7 @@ const UI = {
             let options = card.options;
             if (!options || options.length === 0) {
                 if (card.type === 'boolean') {
-                    options = ['正确', '错误']; 
+                    options = ['正确', '错误'];
                 } else {
                     options = [];
                 }
@@ -680,13 +680,13 @@ const UI = {
             options.forEach((opt, i) => {
                 const label = document.createElement('label');
                 label.className = 'flex items-center p-3 rounded-lg border border-ctp-surface1 hover:bg-ctp-surface1/50 cursor-pointer transition-colors group';
-                
+
                 const input = document.createElement('input');
                 input.type = 'radio';
                 input.name = `card-${index}`;
                 input.value = i;
                 input.className = 'form-radio text-ctp-blue focus:ring-ctp-blue bg-ctp-base border-ctp-overlay0';
-                
+
                 const text = document.createElement('span');
                 text.className = 'ml-3 text-ctp-subtext0 group-hover:text-ctp-text';
                 text.textContent = opt;
@@ -700,7 +700,7 @@ const UI = {
             input.type = 'text';
             input.className = 'w-full bg-ctp-base border border-ctp-surface1 rounded-lg p-3 text-ctp-text focus:border-ctp-blue focus:ring-1 focus:ring-ctp-blue outline-none';
             input.placeholder = '请输入答案...';
-            
+
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     const submitBtn = container.parentElement.querySelector('button');
