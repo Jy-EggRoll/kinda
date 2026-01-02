@@ -20,7 +20,7 @@ const cors = require('cors');
 const OpenAI = require('openai');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 12345;
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
